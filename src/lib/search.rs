@@ -33,6 +33,8 @@ impl <'a> Search <'a> {
         Ok(reqwest::blocking::get(self.to_url())?.json()?)
     }
 
+    
+
     /// Turns the search struct into a url that will return the mods
     /// that fit the search
     fn to_url(&self) -> String {
@@ -56,13 +58,41 @@ pub struct SearchResponse {
     total_hits: u8,
 }
 
+// The implementation of SearchResponse
+impl SearchResponse {
+    /// Create an iterator over the responses
+    pub fn iter(&self) -> SearchResIter {
+        SearchResIter { res: self, offset: 0 }
+    }
+}
+
+/// Iterator over the hits of a SearchResponse
+pub struct SearchResIter<'a> {
+    res: &'a SearchResponse,
+    offset: usize,
+}
+
+// implementation of the iterator, because its just a wrapper over a vector
+// we just keep track of what index we are at and increment it each time
+// we call next
+impl<'a> Iterator for SearchResIter<'a> {
+    type Item = &'a SearchResult;
+
+    /// Returns an Option<&SearchResult> that would be the next element
+    fn next(&mut self) -> Option<Self::Item> {
+        self.offset += 1;
+        self.res.hits.get(self.offset - 1)
+    }
+}
+
+
 /// A Struct that represents the information given to the api caller contained 
 /// in the response of a search more info here: https://docs.modrinth.com/docs/tutorials/api_search/
 #[derive(Deserialize)]
 pub struct SearchResult {
-    slug: String,
+    pub slug: String,
     title: String,
-    pub description: String,
+    description: String,
     categories: Vec<String>,
     client_side: Support,
     server_side: Support,
