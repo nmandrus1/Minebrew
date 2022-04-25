@@ -22,8 +22,7 @@ impl <'a> Search <'a> {
         }
     }
 
-    /// Take a mutable reference to self and modify 
-    /// the version field and return Self for chaining
+    /// Take a mutable reference to self and modify the version field and return Self for chaining
     pub fn version (mut self, version: &'a str) -> Self {
         self.version = version;
         self
@@ -79,6 +78,18 @@ pub struct SearchResult {
 mod search_tests {
     use super::*;
 
+    /// function that reads a json into a string from a file at res/search.json
+    fn search_json_string() -> String {
+        let mut path = std::env::current_dir().unwrap();
+        while path.file_stem().unwrap() != "Minebrew" && path.pop() {}
+
+        if path.file_name().is_none() { panic!("Couldn't locate Minebrew directory") }
+
+        path.push("res/search.json");
+
+        std::fs::read_to_string(path).unwrap()
+    }
+
     #[test]
     fn search_new_test() {
         let s = Search::new("sodium", "1.18.2");
@@ -95,5 +106,11 @@ mod search_tests {
             s.to_url(),
             "https://api.modrinth.com/v2/search?query=sodium&limit=5&index=relevance&facets=[[\"versions:1.18.2\"]]"
             )
+    }
+
+    #[test]
+    fn deserialize_test_search_result() {
+        let s = search_json_string();
+        let search: SearchResult = serde_json::from_str(&s).unwrap();
     }
 }
