@@ -1,6 +1,15 @@
+// This allows our Project type to be deserialized from a JSON automatically
 use serde::Deserialize;
 
+// Lets the Project type use types from the shared.rs file
 use super::shared::*;
+
+// The derive statement here is called a macro, what this does is it 
+// implements the Deserialize interface for our type automatically, 
+// this interface lets our struct be deserialized from a json into a 
+// rust struct, meaning that the json file we recieve from modrinth 
+// can be seamlessly created into a rust struct and used just like any 
+// other struct, really really powerful
 
 /// Holds all the information received by a GET request for a project
 #[derive(Deserialize)]

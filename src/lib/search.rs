@@ -43,6 +43,10 @@ impl <'a> Search <'a> {
     }
 }
 
+// When making a GET request from a search url we get a json that has an array 
+// of search results, as well as some other information about the response, that 
+// is represented in this struct
+
 /// Struct that represents the JOSN Response from a search 
 #[derive(Deserialize)]
 pub struct SearchResponse {
@@ -52,6 +56,8 @@ pub struct SearchResponse {
     total_hits: u8,
 }
 
+/// A Struct that represents the information given to the api caller contained 
+/// in the response of a search more info here: https://docs.modrinth.com/docs/tutorials/api_search/
 #[derive(Deserialize)]
 pub struct SearchResult {
     slug: String,
@@ -74,6 +80,7 @@ pub struct SearchResult {
     gallery: Option<Vec<String>>,
 }
 
+// These are unit tests for this module
 #[cfg(test)]
 mod search_tests {
     use super::*;
@@ -90,6 +97,7 @@ mod search_tests {
         std::fs::read_to_string(path).unwrap()
     }
 
+    // Test to make sure construction works as expected
     #[test]
     fn search_new_test() {
         let s = Search::new("sodium", "1.18.2");
@@ -99,6 +107,7 @@ mod search_tests {
         assert_eq!(s.version, "1.18.2");
     }
 
+    // Test to make sure url generation from Search struct works as expected
     #[test]
     fn search_url_test() {
         let s = Search::new("sodium", "1.18.2");
@@ -108,9 +117,12 @@ mod search_tests {
             )
     }
 
+    // Test to make sure that Search can be deserialized properly
     #[test]
     fn deserialize_test_search_result() {
         let s = search_json_string();
-        let search: SearchResult = serde_json::from_str(&s).unwrap();
+        // the "_" tells rust that we are not planning on using this variable, this is 
+        // just to get no warnings
+        let _: SearchResult = serde_json::from_str(&s).unwrap();
     }
 }
