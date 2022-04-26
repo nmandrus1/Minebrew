@@ -6,13 +6,30 @@ use serde::Deserialize;
 /// for a query and then handle the result
 pub struct Search <'a> {
     limit: u8,
+    /// The string this will be the query
     query: &'a str,
     index: &'a str,
+    /// The version to filter minecraft searches by
     version: &'a str,
 }
 
 impl <'a> Search <'a> {
-    /// Create a new Search based on a query and Version number
+    /// Create a new Search based on a query and version number
+    ///
+    /// # Arguments
+    ///
+    /// * `query` - a string slice that holds the query
+    /// * `version` - a string slice that holds the version number
+    ///
+    /// # Example
+    ///
+    /// ```
+    ///  use mbrew_lib::Search;
+    ///
+    ///  fn main() {
+    ///     let s = Search::new("sodium", "1.18.12");
+    ///  }
+    /// ```
     pub fn new(query: &'a str, version: &'a str) -> Self {
         Self {
             limit: 5,
@@ -22,13 +39,32 @@ impl <'a> Search <'a> {
         }
     }
 
-    /// Take a mutable reference to self and modify the version field and return Self for chaining
     pub fn version (mut self, version: &'a str) -> Self {
         self.version = version;
         self
     }
 
     /// Take the search struct and query the modrinth database
+    ///
+    /// # Arguments
+    ///
+    /// * `&self` - an immutable reference to self
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mbrew_lib::Search;
+    ///
+    /// fn main() {
+    ///     let s = Search::new("sodium", "1.18.2");
+    ///     
+    ///     // Sends a HTTP Request to API and expects a JSON with 
+    ///     // a list of the "hits" for the query
+    ///     let res: SearchResponse = s.search().unwrap();
+    ///     
+    ///     // do stuff with response...
+    /// }
+    /// ```
     pub fn search(&self) -> Result<SearchResponse, Box<dyn std::error::Error>> { 
         Ok(reqwest::blocking::get(self.to_url())?.json()?)
     }
@@ -38,10 +74,9 @@ impl <'a> Search <'a> {
     /// Turns the search struct into a url that will return the mods
     /// that fit the search
     fn to_url(&self) -> String {
-        let url = format!(
+        format!(
             "https://api.modrinth.com/v2/search?query={}&limit={}&index={}&facets=[[\"versions:{}\"]]",
-            self.query, self.limit, self.index, self.version);
-        url
+            self.query, self.limit, self.index, self.version)
     }
 }
 
@@ -61,8 +96,50 @@ pub struct SearchResponse {
 // The implementation of SearchResponse
 impl SearchResponse {
     /// Create an iterator over the responses
+    ///
+    /// # Arguments 
+    ///
+    /// * `&self` - immutable reference to self
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mbrew_lib::{Search, SearchResponse};
+    ///
+    /// fn main() {
+    ///     let s = Search::new("sodium", 1.18.2).search().unwrap();
+    ///
+    ///     // iterator over SearchResults
+    ///     let iter = s.iter();
+    ///
+    ///     // 
+    ///     assert_eq("sodium", iter.next().unwrap().slug);
+    /// }
+    /// ```
     pub fn iter(&self) -> SearchResIter {
         SearchResIter { res: self, offset: 0 }
+    }
+
+    /// A simple function to test if there were no hits on the search
+    ///
+    /// # Arguments
+    ///
+    /// * `&self` - immutable reference to self 
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use mbrew_lib::Search;
+    ///
+    /// fn main() {
+    ///
+    ///     let s = Search::new("No Mod has This Name", "1.30.17");
+    ///
+    ///     assert_eq!(s.search().unwrap().is_empty(), true);
+    /// }
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        self.hits.is_empty()
     }
 }
 
@@ -90,7 +167,7 @@ impl<'a> Iterator for SearchResIter<'a> {
 /// in the response of a search more info here: https://docs.modrinth.com/docs/tutorials/api_search/
 #[derive(Deserialize)]
 pub struct SearchResult {
-    pub slug: String,
+    slug: String,
     title: String,
     description: String,
     categories: Vec<String>,
@@ -108,6 +185,21 @@ pub struct SearchResult {
     latest_version: Option<String>,
     license: String,
     gallery: Option<Vec<String>>,
+}
+
+impl SearchResult {
+    /// Get the slug of the project
+    pub fn slug(&self) -> &str {
+        &self.slug
+    }
+    
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+    
+    pub fn title(&self) -> &str {
+        &self.title
+    }
 }
 
 // These are unit tests for this module

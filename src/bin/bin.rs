@@ -1,8 +1,9 @@
 use mbrew_lib::Search;
 
-use reqwest::blocking::get;
-
 fn main() {
-    let s = Search::new("sodium", "1.18.2");
-    s.search().unwrap().iter().for_each(|s| println!("{}", s.slug))
+    let query = std::env::args().nth(1).unwrap();
+    let s = Search::new(&query, "1.18.2");
+
+    let res = s.search().unwrap(); 
+    res.iter().for_each(|s| println!("{} - {}", s.slug(), s.description()));
 }
