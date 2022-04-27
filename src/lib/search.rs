@@ -32,7 +32,7 @@ impl <'a> Search <'a> {
     /// ```
     pub fn new(query: &'a str, version: &'a str) -> Self {
         Self {
-            limit: 5,
+            limit: 3,
             query,
             index: "relevance",
             version,
@@ -53,7 +53,7 @@ impl <'a> Search <'a> {
     /// # Example
     ///
     /// ```
-    /// use mbrew_lib::Search;
+    /// use mbrew_lib::{Search, SearchResponse};
     ///
     /// fn main() {
     ///     let s = Search::new("sodium", "1.18.2");
@@ -107,13 +107,13 @@ impl SearchResponse {
     /// use mbrew_lib::{Search, SearchResponse};
     ///
     /// fn main() {
-    ///     let s = Search::new("sodium", 1.18.2).search().unwrap();
+    ///     let s = Search::new("sodium", "1.18.2").search().unwrap();
     ///
     ///     // iterator over SearchResults
-    ///     let iter = s.iter();
+    ///     let mut iter = s.iter();
     ///
     ///     // 
-    ///     assert_eq("sodium", iter.next().unwrap().slug);
+    ///     assert_eq!("sodium", iter.next().unwrap().slug());
     /// }
     /// ```
     pub fn iter(&self) -> SearchResIter {
@@ -162,6 +162,15 @@ impl<'a> Iterator for SearchResIter<'a> {
     }
 }
 
+//#[serde(skip)] tells the serde library to not 
+// bother to deserialize or serialize that
+// field into a JSON, this will save some 
+// time because most of the info we're not using
+//
+// The "_" prefixing the name of the fields has a similar
+// effect, that tells the rust compiler that we aren't 
+// planning to use that variable at the moment but we may
+// in the future, it mostly just stops all the warnings
 
 /// A Struct that represents the information given to the api caller contained 
 /// in the response of a search more info here: https://docs.modrinth.com/docs/tutorials/api_search/
@@ -170,20 +179,31 @@ pub struct SearchResult {
     slug: String,
     title: String,
     description: String,
+    #[serde(skip)]
     categories: Vec<String>,
     client_side: Support,
     server_side: Support,
     project_type: ProjectType,
+    #[serde(skip)]
     downloads: usize,
+    #[serde(skip)]
     icon_url: Option<String>,
     project_id: String,
+    #[serde(skip)]
     author: String,
+    #[serde(skip)]
     follows: usize,
+    #[serde(skip)]
     versions: Vec<String>,
+    #[serde(skip)]
     date_created: String,
+    #[serde(skip)]
     date_modified: String,
+    #[serde(skip)]
     latest_version: Option<String>,
+    #[serde(skip)]
     license: String,
+    #[serde(skip)]
     gallery: Option<Vec<String>>,
 }
 
@@ -200,6 +220,10 @@ impl SearchResult {
     pub fn title(&self) -> &str {
         &self.title
     }
+    
+    pub fn id(&self) -> &str {
+        &self.project_id
+    }
 }
 
 // These are unit tests for this module
@@ -214,7 +238,7 @@ mod search_tests {
 
         if path.file_name().is_none() { panic!("Couldn't locate Minebrew directory") }
 
-        path.push("res/search.json");
+        path.push("res/tests/search.json");
 
         std::fs::read_to_string(path).unwrap()
     }
@@ -223,7 +247,7 @@ mod search_tests {
     #[test]
     fn search_new_test() {
         let s = Search::new("sodium", "1.18.2");
-        assert_eq!(s.limit, 5);
+        assert_eq!(s.limit, 3);
         assert_eq!(s.query, "sodium");
         assert_eq!(s.index, "relevance");
         assert_eq!(s.version, "1.18.2");
@@ -235,7 +259,7 @@ mod search_tests {
         let s = Search::new("sodium", "1.18.2");
         assert_eq!(
             s.to_url(),
-            "https://api.modrinth.com/v2/search?query=sodium&limit=5&index=relevance&facets=[[\"versions:1.18.2\"]]"
+            "https://api.modrinth.com/v2/search?query=sodium&limit=3&index=relevance&facets=[[\"versions:1.18.2\"]]"
             )
     }
 

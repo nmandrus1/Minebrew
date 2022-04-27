@@ -8,4 +8,4 @@ mod search;
 // able to use these types directly without having to import the 
 // project module or search module
 pub use project::Project;
-pub use search::Search;
+pub use search::{Search, SearchResponse, SearchResult};

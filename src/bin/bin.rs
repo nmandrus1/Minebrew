@@ -1,9 +1,26 @@
-use mbrew_lib::Search;
+use mbrew_lib::{Search, SearchResult};
 
 fn main() {
-    let query = std::env::args().nth(1).unwrap();
-    let s = Search::new(&query, "1.18.2");
+    let query = std::env::args().nth(1).unwrap().to_lowercase();
+    let version = "1.18.2";
+    let s = Search::new(&query, version);
 
-    let res = s.search().unwrap(); 
-    res.iter().for_each(|s| println!("{} - {}", s.slug(), s.description()));
+    let res = s.search().unwrap();
+
+    if let Some(s) = res.iter()
+        .find(|s| s.slug() == query || s.title().to_lowercase() == query) {
+            println!("{} id: {}", s.slug(), s.id())
+    } else {
+
+    }
+
+    let results: Vec<&SearchResult> = res.iter()
+        .filter(|s| s.slug().contains(&query) || s.title().to_lowercase().contains(&query))
+        .collect(); 
+
+    if results.is_empty() {
+        eprintln!("target not found: \"{}\" with version: {}", query, version);
+    }
+
+    
 }
