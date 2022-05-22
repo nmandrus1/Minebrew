@@ -1,4 +1,5 @@
 use super::shared::*;
+use super::traits::ModSearchResult;
 
 use serde::Deserialize;
 
@@ -207,21 +208,21 @@ pub struct SearchResult {
     gallery: Option<Vec<String>>,
 }
 
-impl SearchResult {
+impl ModSearchResult for SearchResult {
     /// Get the slug of the project
-    pub fn slug(&self) -> &str {
+    fn slug(&self) -> &str {
         &self.slug
     }
     
-    pub fn description(&self) -> &str {
+    fn description(&self) -> &str {
         &self.description
     }
     
-    pub fn title(&self) -> &str {
+    fn title(&self) -> &str {
         &self.title
     }
     
-    pub fn id(&self) -> &str {
+    fn id(&self) -> &str {
         &self.project_id
     }
 }

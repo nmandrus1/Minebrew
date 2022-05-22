@@ -1,6 +1,7 @@
-use mbrew_lib::{Search, SearchResult};
+use mbrew_lib::{traits::*, modrinth::{Search, SearchResult}};
 
 fn main() {
+    let v = vec![1, 2, 3].iter();
     let query = std::env::args().nth(1).unwrap().to_lowercase();
     let version = "1.18.2";
     let s = Search::new(&query, version);
@@ -21,6 +22,4 @@ fn main() {
     if results.is_empty() {
         eprintln!("target not found: \"{}\" with version: {}", query, version);
     }
-
-    
 }
