@@ -1,5 +1,4 @@
 use super::shared::*;
-use super::traits::ModSearchResult;
 
 use serde::Deserialize;
 
@@ -17,6 +16,8 @@ pub struct Search <'a> {
 impl <'a> Search <'a> {
     /// Create a new Search based on a query and version number
     ///
+    /// NOTE for devs: Defaults to limiting results to 5
+    ///
     /// # Arguments
     ///
     /// * `query` - a string slice that holds the query
@@ -33,7 +34,7 @@ impl <'a> Search <'a> {
     /// ```
     pub fn new(query: &'a str, version: &'a str) -> Self {
         Self {
-            limit: 3,
+            limit: 5,
             query,
             index: "relevance",
             version,
@@ -66,8 +67,20 @@ impl <'a> Search <'a> {
     ///     // do stuff with response...
     /// }
     /// ```
-    pub fn search(&self) -> Result<SearchResponse, Box<dyn std::error::Error>> { 
-        Ok(reqwest::blocking::get(self.to_url())?.json()?)
+    pub fn search(&self) -> Result<SearchResponse, reqwest::Error> { 
+        match reqwest::blocking::get(self.to_url()) {
+            Err(e) => { // Handle ERROR case for GET request
+                // if it is a connection error then let the user know
+                if e.is_connect() {
+                    eprintln!("Error connecting to host...");
+                    std::process::exit(1)
+                // If it isnt then something else happened that shouldnt have
+                } else {
+                    panic!("Unexpected reqwest error...")
+                }
+            },
+            Ok(response) => response.json::<SearchResponse>() // Parse json on success
+        }
     }
 
     
@@ -177,14 +190,14 @@ impl<'a> Iterator for SearchResIter<'a> {
 /// in the response of a search more info here: https://docs.modrinth.com/docs/tutorials/api_search/
 #[derive(Deserialize)]
 pub struct SearchResult {
-    slug: String,
-    title: String,
-    description: String,
+    pub slug: String,
+    pub title: String,
+    pub description: String,
     #[serde(skip)]
     categories: Vec<String>,
-    client_side: Support,
-    server_side: Support,
-    project_type: ProjectType,
+    pub client_side: Support,
+    pub server_side: Support,
+    pub project_type: ProjectType,
     #[serde(skip)]
     downloads: usize,
     #[serde(skip)]
@@ -194,8 +207,7 @@ pub struct SearchResult {
     author: String,
     #[serde(skip)]
     follows: usize,
-    #[serde(skip)]
-    versions: Vec<String>,
+    pub versions: Vec<String>,
     #[serde(skip)]
     date_created: String,
     #[serde(skip)]
@@ -206,25 +218,6 @@ pub struct SearchResult {
     license: String,
     #[serde(skip)]
     gallery: Option<Vec<String>>,
-}
-
-impl ModSearchResult for SearchResult {
-    /// Get the slug of the project
-    fn slug(&self) -> &str {
-        &self.slug
-    }
-    
-    fn description(&self) -> &str {
-        &self.description
-    }
-    
-    fn title(&self) -> &str {
-        &self.title
-    }
-    
-    fn id(&self) -> &str {
-        &self.project_id
-    }
 }
 
 // These are unit tests for this module
