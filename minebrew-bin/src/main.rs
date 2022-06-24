@@ -1,16 +1,16 @@
 use minebrew_lib::modrinth::{Search, SearchResult};
-use minebrew_cfg;
+use minebrew_cfg::Config;
 use std::io::Write;
 
 fn main() {
-    // -------- LOAD CONFIG FILE -------- 
-    let (args, config) = minebrew_cfg::load_args_and_config();
+    // -------- LOAD CONFIG -------- 
+    let config = Config::load();
 
-    // set up query -- args.free contains the users query
+    // set up query -- config.queries contains the users query
     // if the vector is empty then no query has been made 
-    let usr_in = args.queries.first().unwrap();
-    let query = usr_in.to_lowercase();
-    let version = "1.19";
+    let queries = &config.queries; 
+    let target  = &config.target;
+
     // make query
     let s = Search::new(&query, version);
 

@@ -3,11 +3,11 @@ use serde::Deserialize;
 use etcetera::base_strategy::{choose_base_strategy, BaseStrategy};
 
 #[derive(Deserialize)]
-pub struct Config {
+pub struct ConfigFile {
     pub target: String,
 }
 
-impl Default for Config {
+impl Default for ConfigFile {
     fn default() -> Self {
         Self { target: String::from("1.18.2") } 
     }
@@ -15,7 +15,7 @@ impl Default for Config {
 
 /// Function that finds and tries to load config file
 /// ex location: "~/.config/mbrew/config.toml"
-pub fn load_config() -> Result<Config> {
+pub fn load_config_file() -> Result<ConfigFile> {
     let strat = choose_base_strategy() 
         .expect("Unable to locate config directory..."); // locate config dir
 
@@ -40,7 +40,7 @@ pub fn load_config() -> Result<Config> {
         },
         // Cool syntax I didn't know about 
         // if the file isnt found then use default config otherwise return an error
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(Config::default()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(ConfigFile::default()),
         Err(err) =>  Err(anyhow::Error::from(err)),
     }
 }
