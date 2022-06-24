@@ -17,7 +17,7 @@ pub struct Args {
     pub queries: Vec<String>,
 
     #[clap(short, long, value_parser = valid_target_string)]
-    pub target: Option<&'static str>,
+    pub target: Option<String>,
 }
 
 impl Args {
@@ -25,8 +25,7 @@ impl Args {
         Self::parse()
     }
 }
-
-fn valid_target_string(s: &str) -> Result<&str, String> {
+fn valid_target_string(s: &str) -> Result<String, String> {
     // check start, end, and whether it contains required info
     if !s.contains(".") 
         || !s.contains(|c: char| c.is_ascii_digit()) 
@@ -41,7 +40,7 @@ fn valid_target_string(s: &str) -> Result<&str, String> {
         c.is_ascii_digit() || (c == '.' && (&s[i-1..i] != "."))
     }) { return  Err(format!("Invalid target version passed: {}", s)) }
 
-    Ok(s)
+    Ok(s.to_owned())
 }
 
 #[cfg(test)]
