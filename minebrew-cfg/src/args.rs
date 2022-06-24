@@ -27,10 +27,10 @@ impl Args {
 }
 fn valid_target_string(s: &str) -> Result<String, String> {
     // check start, end, and whether it contains required info
-    if !s.contains(".") 
+    if !s.contains('.') 
         || !s.contains(|c: char| c.is_ascii_digit()) 
-        || s.starts_with(".") 
-        || s.ends_with(".") {
+        || s.starts_with('.') 
+        || s.ends_with('.') {
 
             return Err(format!("Invalid target version passed: {}", s))
     }
