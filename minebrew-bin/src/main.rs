@@ -1,9 +1,14 @@
 use minebrew_lib::modrinth::{Search, SearchResult};
+use minebrew_cfg;
 use std::io::Write;
 
 fn main() {
-    // set up query
-    let usr_in = std::env::args().nth(1).unwrap();
+    // -------- LOAD CONFIG FILE -------- 
+    let (args, config) = minebrew_cfg::load_args_and_config();
+
+    // set up query -- args.free contains the users query
+    // if the vector is empty then no query has been made 
+    let usr_in = args.queries.first().unwrap();
     let query = usr_in.to_lowercase();
     let version = "1.19";
     // make query
@@ -37,7 +42,7 @@ fn main() {
         write!(writer, "\nChoose package (default=1): ").unwrap();
         writer.flush().unwrap();
 
-        // grab user input 
+        // grab user input
         let mut input = String::with_capacity(3);
         std::io::stdin().read_line(&mut input).unwrap();
 

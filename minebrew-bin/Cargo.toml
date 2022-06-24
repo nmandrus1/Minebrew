@@ -11,4 +11,4 @@ path = "src/main.rs"
 
 [dependencies]
 minebrew-lib = { path = "../minebrew-lib"}
-gumdrop = "0.8.1"
+minebrew-cfg = { path = "../minebrew-cfg"}
