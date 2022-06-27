@@ -1,0 +1,38 @@
+6/27/22 - Let user specify in config (and cmd line) their preference for downloading release builds, betas, and alphas
+  -- IDEA : build_preference = "rba"
+    r -- release
+    b -- beta
+    a -- alpha
+
+  -- "rba" is their preference, so "rba" says to prefer a release build but 
+    if there isnt one available then a beta is okay etc
+
+  -- The user can also omit any one of these characters to opt out of that build 
+    entirely: "rb" would not consider an alpha build, "b" would only look for betas etc
+
+  -- The default if no build_preference was specified would be "rb" 
+    (maybe just "r" but we can discuss that )
+
+  -- REPRESENTATION: An enum with associated values that correspond to bit positions 
+
+    0 0 0 0 0 0 0 1 -> 1 (0x1)
+    0 0 0 0 0 0 1 0 -> 2 (0x2)
+    0 0 0 0 0 1 0 0 -> 4 (0x4)
+
+    0 0 0 0 0 1 1 1 -> An 8-bit number
+              | | |
+              a b r -> "rba"
+    
+    0 0 0 0 0 0 1 1 
+                | |
+                b r -> "rb"
+
+    When parsing the configuration file we could iterate over the characters and 
+    map the iterator to their corresponding enum values, then from there it would 
+    be as easy as just using the "|" (OR) bitwise operator on all three:
+
+      num = Enum1 | Enum2 | Enum3
+
+    to get our number
+
+  

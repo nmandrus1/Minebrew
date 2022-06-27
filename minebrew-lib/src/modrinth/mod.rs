@@ -5,3 +5,4 @@ mod version;
 
 pub use project::Project;
 pub use search::{Search, SearchResponse, SearchResult};
+pub use version::Version;

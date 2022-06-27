@@ -11,3 +11,4 @@ serde = { version = "1.0",  features = ["derive"] }
 toml = "0.5.9"
 etcetera = "0.4.0"
 anyhow = "1.0.58"
+home = "0.5.3"

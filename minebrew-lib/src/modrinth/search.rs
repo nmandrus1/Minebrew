@@ -102,9 +102,9 @@ impl <'a> Search <'a> {
 #[derive(Deserialize)]
 pub struct SearchResponse {
     pub hits: Vec<SearchResult>,
-    offset: u8,
-    limit: u8,
-    total_hits: u8,
+    _offset: u8,
+    _limit: u8,
+    _total_hits: u8,
 }
 
 // The implementation of SearchResponse
@@ -194,30 +194,30 @@ pub struct SearchResult {
     pub title: String,
     pub description: String,
     #[serde(skip)]
-    categories: Vec<String>,
+    _categories: Vec<String>,
     pub client_side: Support,
     pub server_side: Support,
     pub project_type: ProjectType,
     #[serde(skip)]
-    downloads: usize,
+    _downloads: usize,
     #[serde(skip)]
-    icon_url: Option<String>,
-    project_id: String,
+    _icon_url: Option<String>,
+    _project_id: String,
     #[serde(skip)]
-    author: String,
+    _author: String,
     #[serde(skip)]
-    follows: usize,
+    _follows: usize,
     pub versions: Vec<String>,
     #[serde(skip)]
-    date_created: String,
+    _date_created: String,
     #[serde(skip)]
-    date_modified: String,
+    _date_modified: String,
     #[serde(skip)]
-    latest_version: Option<String>,
+    _latest_version: Option<String>,
     #[serde(skip)]
-    license: String,
+    _license: String,
     #[serde(skip)]
-    gallery: Option<Vec<String>>,
+    _gallery: Option<Vec<String>>,
 }
 
 // These are unit tests for this module
