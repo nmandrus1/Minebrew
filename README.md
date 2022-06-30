@@ -2,7 +2,7 @@
 
 >Warning! This is a work in progress, use at your own risk
 
-1. [Planned Features](#planned_features)
+1. [Planned Features](#planned-features)
 1. [Installation](#installation)
 1. [Usage](#usage)
 
