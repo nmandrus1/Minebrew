@@ -42,7 +42,7 @@ impl <'a> Search <'a> {
         self
     }
 
-    /// Take the search struct and query the modrinth database
+    /// Take the search struct and query the modrinth data
     ///
     /// # Arguments
     ///
@@ -95,8 +95,17 @@ impl <'a> Search <'a> {
 #[derive(Deserialize)]
 pub struct SearchResponse {
     pub hits: Vec<SearchResult>,
+
+    #[serde(skip)]
+    #[serde(rename = "offset")]
     _offset: u8,
+
+    #[serde(skip)]
+    #[serde(rename = "limit")]
     _limit: u8,
+
+    #[serde(skip)]
+    #[serde(rename = "total_hits")]
     _total_hits: u8,
 }
 
@@ -175,32 +184,61 @@ impl<'a> Iterator for SearchResIter<'a> {
 #[derive(Deserialize)]
 pub struct SearchResult {
     pub slug: String,
+
     pub title: String,
+
     pub description: String,
+
     #[serde(skip)]
+    #[serde(rename = "categories")]
     _categories: Vec<String>,
+
     pub client_side: Support,
+
     pub server_side: Support,
+
     pub project_type: ProjectType,
+
     #[serde(skip)]
+    #[serde(rename = "downloads")]
     _downloads: usize,
+
     #[serde(skip)]
+    #[serde(rename = "icon_url")]
     _icon_url: Option<String>,
+
+    #[serde(skip)]
+    #[serde(rename = "project_id")]
     _project_id: String,
+
     #[serde(skip)]
+    #[serde(rename = "author")]
     _author: String,
+
     #[serde(skip)]
+    #[serde(rename = "follows")]
     _follows: usize,
+
     pub versions: Vec<String>,
+
     #[serde(skip)]
+    #[serde(rename = "date_created")]
     _date_created: String,
+
     #[serde(skip)]
+    #[serde(rename = "date_modified")]
     _date_modified: String,
+
     #[serde(skip)]
+    #[serde(rename = "latest_version")]
     _latest_version: Option<String>,
+
     #[serde(skip)]
+    #[serde(rename = "license")]
     _license: String,
+
     #[serde(skip)]
+    #[serde(rename = "gallery")]
     _gallery: Option<Vec<String>>,
 }
 

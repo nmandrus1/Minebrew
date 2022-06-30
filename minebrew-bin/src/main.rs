@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use minebrew_lib::modrinth::{ Search, SearchResult, Version, ModFile };
 use minebrew_cfg::{ load_options, Options, Subcommands };
 
@@ -40,6 +42,8 @@ fn install(mut opts: Options) {
             slug_lower.contains(&query_lower) || title_lower.contains(&query_lower)
         }).collect::<Vec<SearchResult>>();
 
+
+
         // If there are more than 1 results then ask the user for the mod they want
         let res = if results.hits.is_empty() {
             eprintln!("error: {} not found", query);
@@ -52,13 +56,14 @@ fn install(mut opts: Options) {
                 .for_each(|(i, r)| println!("\t{}) {}", i+1, &r.title));
 
             print!("\nPick mod (default=1): ");
+            std::io::stdout().flush().unwrap();
 
             // string to hold user input
             let mut input = String::with_capacity(2);
 
             let choice = loop { // loop until they pick a mod
                 std::io::stdin().read_line(&mut input).unwrap(); 
-                match input.parse::<usize>() {
+                match input.trim().parse::<usize>() {
                     Ok(num) => { // parsing was good but is it a valid option?
                         if num > results.hits.len() || num == 0 {
                             eprint!("Invalid input, try again: "); 
@@ -72,7 +77,7 @@ fn install(mut opts: Options) {
                 };
             };
 
-            &results.hits[choice+1]
+            &results.hits[choice-1]
         };
 
         // here we could do more complicated processing like beta versions/featured versions
@@ -91,7 +96,7 @@ fn install(mut opts: Options) {
     // if mods folder doesn't exist then make one 
     if !mods_folder.exists() {
     println!("Not found, creating mods folder...");
-        std::fs::create_dir_all(&mc_dir).unwrap();
+        std::fs::create_dir_all(&mods_folder).unwrap();
     } else { 
         println!("Mods folder found...") 
     }

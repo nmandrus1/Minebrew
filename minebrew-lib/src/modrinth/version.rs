@@ -4,8 +4,15 @@ use super::shared::*;
 
 #[derive(Deserialize)]
 struct Dependency {
+    #[serde(skip)]
+    #[serde(rename = "version_id")]
     _version_id: Option<String>,
+
+    #[serde(skip)]
+    #[serde(rename = "project_id")]
     _project_id: Option<String>,
+
+    #[serde(rename = "dependecy_type")]
     _dependecy_type: DependencyType,
 }
 
@@ -19,14 +26,24 @@ enum VersionType {
 
 #[derive(Deserialize)]
 pub struct ModFile {
+    #[serde(skip)]
+    #[serde(rename = "hashes")]
     _hashes: Hashes,
+
     pub url: String,
+
     pub filename: String,
+
+    #[serde(skip)]
+    #[serde(rename = "primary")]
     _primary: bool,
+
+    #[serde(skip)]
+    #[serde(rename = "size")]
     _size: usize,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct Hashes {
     _sha512: Option<String>,
     _sha1: Option<String>,
@@ -38,28 +55,55 @@ pub struct Versions (Vec<Version>);
 /// struct that represents a particular downloadable version of a mod
 #[derive(Deserialize)]
 pub struct Version {
+    #[serde(skip)]
+    #[serde(rename = "name")]
     _name: String,
+
+    #[serde(skip)]
+    #[serde(rename = "version_number")]
     _version_number: String,
+
     #[serde(skip)]
+    #[serde(rename = "changelog")]
     _changelog: Option<String>,
+
     #[serde(skip)]
-    _dependecies: Option<Vec<Dependency>>,
+    #[serde(rename = "dependencies")]
+    _dependencies: Option<Vec<Dependency>>,
+
     pub game_versions: Vec<String>,
+
+    #[serde(rename = "version_type")]
     _version_type: VersionType,
+
     #[serde(skip)]
+    #[serde(rename = "loaders")]
     _loaders: Vec<String>,
+
     #[serde(skip)]
+    #[serde(rename = "featured")]
     _featured: bool,
+
     #[serde(skip)]
+    #[serde(rename = "id")]
     _id: String,
+
     #[serde(skip)]
+    #[serde(rename = "project_id")]
     _project_id: String,
+
     #[serde(skip)]
+    #[serde(rename = "author_id")]
     _author_id: String,
+
     #[serde(skip)]
+    #[serde(rename = "date_published")]
     _date_published: String,
+
     #[serde(skip)]
+    #[serde(rename = "changelog_url")]
     _changelog_url: Option<String>,
+
     pub files: Vec<ModFile>,
 }
 
