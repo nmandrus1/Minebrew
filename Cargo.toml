@@ -5,3 +5,8 @@ members = [
   "minebrew-cfg",
   "minebrew-bin",
 ]
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
