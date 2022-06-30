@@ -1,22 +1,74 @@
-## Project Overview
+## Minebrew
+
+>Warning! This is a work in progress, use at your own risk
 
 Minebrew is a package manager for minecraft mods hosted on [modrinth](https://modrinth.com)
 
-Planned Features
-- Searching for mods
-- Downloading and installing mods
-- Removing installed mods
-- Dependency checks/downloads
-- Mod version management (Maybe)
+### Planned Features
+- Installation
+	- [x] Mod Installation
+	- [ ] Mod Updates
+	- [ ] Dependency Management
+	- [ ] Incompatibility Management
+	- [ ] Uninstalling
+	- [ ] QOL features
 
-We use the modrinth [API](https://docs.modrinth.com/)
+- Searching
+	- [ ] Basic searching functionality
 
 
-## General Usage (Ideas)
+- Configuration
+	- [ ] Easy configuration editing
 
-`mcbrew [SUBCOMMAND] [MOD]`
+- General 
+	- [ ] Cross platform releases
 
-#### Subcommands
-- `install` - finds and isntalls the specified mod
-- `search ` / `query` - searches the database for the mod
-- `remove` - uninstalls the specified mod
+
+### Installation 
+You will need an up-to-date version of rust installed. I personally prefer using rustup:
+
+`$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+Will install rustup and begin the installation process. Use the default options and when it is done clone the git repository wherever you would like:
+
+`https://github.com/Brogramming-Inc/Minebrew.git`
+
+next navigate into the `Minebrew` directory and and run the following command:
+
+```
+$ cd Minebrew
+$ cargo build -r
+```
+
+This will build Minebrew from source and place a binary in 
+
+`Minebrew/target/release/mbrew`
+
+From there you can do whatever you'd like with the binary.
+
+NOTE: Minebrew assumes you have a .minecraft folder so please be sure to have Minecraft installed 
+
+### Usage
+```
+USAGE:
+    mbrew [OPTIONS] <SUBCOMMAND>
+
+OPTIONS:
+    -h, --help               Print help information
+    -m, --mc-dir <MC_DIR>    path to ".minecraft"
+    -t, --target <TARGET>    override the default Minecraft version
+    -V, --version            Print version information
+
+SUBCOMMANDS:
+    help       Print this message or the help of the given subcommand(s)
+    install    Subcommand used to install mods
+```
+
+The only subcommand available at the moment is `install` but more are on the way. To download sodium and the fabric api run the following:
+
+`mbrew install fabric-api sodium`
+
+and Minebrew will find the mods and download them to your mods folder.
+
+Should you have any issues please create one here on github and it will get fixed ASAP.
+
