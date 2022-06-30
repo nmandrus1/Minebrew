@@ -6,9 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+gumdrop = "0.8.1"
+gumdrop_derive = { version = "0.8.1", features = ["default_expr"] }
 clap = { version = "3.2.6", features = ["derive"] }
 serde = { version = "1.0",  features = ["derive"] }
 toml = "0.5.9"
-etcetera = "0.4.0"
 anyhow = "1.0.58"
-home = "0.5.3"
+dirs = "4.0.0"

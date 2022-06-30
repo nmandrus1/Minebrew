@@ -1,58 +1,34 @@
-/// The Goal of this module is to provide the binary with a concrete set of data
-/// that leaves no ambiguity or questions as to whether there are other options 
-/// to consider. In other words, the arguments and config file should be merged
-/// and have no Options or Results in the struct. The binary should do no 
-/// validation checking because if it made it to the config struct it IS valid.
-/// If a field is unable to be produced then the program should not run, it 
-/// should exit cleanly and with a descriptive  error message that is clear 
-/// and helpful to the user
+/// Configuration Goal: Load a default version of 
 
 mod args;
 mod config_file;
 
-use config_file::{load_config_file, ConfigFile};
-use args::{ Options, Subcommands };
+use config_file::ConfigFile;
+pub use args::{ Options, Subcommands };
 
 use anyhow::Result;
+use dirs;
+
+use std::path::PathBuf;
+
+pub fn load_options() -> Options {
+    let mut opts = Options::parse_args();
+    let config_file = ConfigFile::load();
+
+    match opts.command {
+        Subcommands::Install(_) => {
+            opts.target.get_or_insert(config_file.target.unwrap());
+            opts.mc_dir.get_or_insert(config_file.mc_dir.unwrap());
+        },
+        _ => todo!()
+    };
+    opts
+}
 
 /// loads the Configuration Options
 // Parses command line arguments and then attempts to read the 
 // config file into a struct exiting the program if there is an 
 // error reading the file
-pub fn load() -> Subcommands {
-    let args = Options::parse_args(); // let clap do all the work of parsing
-
-    // if this fn returns OK then we shouldnt have to return a Result,
-    // if it Errors out then that means a config was found but can't 
-    // be loaded and we should let the user know something is wrong
-    let config_file = match load_config_file() {
-        Ok(cfg) =>  cfg,
-        Err(e)  => {
-            eprintln!("Error loading config.toml: {}", e);
-            std::process::exit(1);
-        }
-    };
-
-    // Combine config file options with arguments 
-    // passed through with a preference for the values passed
-    let command = match args.command {
-        Subcommands::Install(i) => ,
-        _ => todo!()
-    };
-
-    let target = match args.target {
-        Some(t) => t,
-        None  => match valid_target_string(&config_file.target) {
-            // Now we attempt to use the config file's target 
-            // but we have to check if the target string is valid
-            Ok(_)  => config_file.target,
-            Err(e) => { eprintln!("{e}"); std::process::exit(1) }
-        },
-    };
-    
-    // dont match for queries bc it should always be passed (for now)
-}
-
 
 
 /// Function to determine whether a string that is supposed to 
@@ -76,6 +52,50 @@ fn valid_target_string(s: &str) -> Result<()> {
     }
 
     Ok(())
+}
+
+// Conditional Compiliation bc .minecraft is in 
+// different places depending on target_family
+/// Finds the ".minecraft" folder and exits if 
+/// it could not find it.
+///
+/// Windows: finds %USERPROFILE% and then appends AppData before .minecraft
+///
+/// Unix: finds $HOME and then appends .minecraft
+#[cfg(target_family = "windows")]
+fn get_mc_dir() -> PathBuf {
+    let mut home = match dirs::home_dir() {
+        Some(p) => p,
+        None => {
+            eprintln!("Impossible to locate home directory...");
+            std::process::exit(1);
+        }
+    };
+
+    home.push("AppData");
+    home.push(".minecraft");
+    home
+}
+
+/// Finds the ".minecraft" folder and exits if 
+/// it could not find it.
+///
+/// Windows: finds %USERPROFILE% and then appends AppData before .minecraft
+///
+/// Unix: finds $HOME and then appends .minecraft
+
+#[cfg(target_family = "unix")]
+fn get_mc_dir() -> PathBuf {
+    let mut home = match dirs::home_dir() {
+        Some(p) => p,
+        None => {
+            eprintln!("Impossible to locate home directory...");
+            std::process::exit(1);
+        }
+    };
+    
+    home.push(".minecraft");
+    home
 }
 
 #[cfg(test)]
