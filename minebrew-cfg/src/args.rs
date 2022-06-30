@@ -26,16 +26,19 @@ fn parse_target(s: &str) -> Result<String, String> {
 #[clap(author = "The Brogrammers")]
 #[clap(version = "0.1")]
 #[clap(about = "A fast and hassle-free mod package manager for minecraft")]
+#[clap(long_about = None)]
 pub struct Options {
     // The Subcommand enum which holds the struct 
     // with the arguments passed through
     #[clap(subcommand)]
     pub command: Subcommands,
 
-    #[clap(short, long, value_parser = parse_target)]
+    #[clap(short, long)]
+    #[clap(help = "override the default Minecraft version")]
+    #[clap(value_parser = parse_target)] 
     pub target: Option<String>,
 
-    #[clap(short, long, value_parser)] 
+    #[clap(short, long, help = "path to \".minecraft\"", value_parser)] 
     pub mc_dir: Option<PathBuf>,
 }
 
@@ -48,10 +51,15 @@ impl Options {
 // Our subcommands
 #[derive(Subcommand)]
 pub enum Subcommands {
+    #[clap(arg_required_else_help = true, about = "Subcommand used to install mods")]
     Install(InstallOpts),
+    #[clap(arg_required_else_help = true, about = "Coming soon")]
     Search,
+    #[clap(arg_required_else_help = true, about = "Coming soon")]
     Remove,
+    #[clap(arg_required_else_help = true, about = "Coming soon")]
     Update,
+    #[clap(arg_required_else_help = true, about = "Coming soon")]
     Config, 
 }
 
@@ -65,11 +73,13 @@ impl Subcommands {
     }
 }
 
-/// The install struct, holds data and options passed 
-/// through the install subcommand
+// The install struct, holds data and options passed 
+// through the install subcommand
 #[derive(Args, Default)]
 pub struct InstallOpts {
     // Vector of strings representing the queries to make
-    #[clap(required = true, value_parser)]
+    #[clap(required = true)]
+    #[clap(help = "One or more mods to download, entries are separated by spaces")]
+    #[clap(value_parser)]
     pub queries: Vec<String>,
 }
