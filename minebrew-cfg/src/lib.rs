@@ -7,7 +7,6 @@ use config_file::ConfigFile;
 pub use args::{ Options, Subcommands };
 
 use anyhow::Result;
-use dirs;
 
 use std::path::PathBuf;
 

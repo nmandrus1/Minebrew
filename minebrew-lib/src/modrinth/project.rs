@@ -14,46 +14,46 @@ use super::shared::*;
 /// Holds all the information received by a GET request for a project
 #[derive(Deserialize)]
 pub struct Project {
-    slug: String,
-    title: String,
-    description: String,
+    _slug: String,
+    _title: String,
+    _description: String,
     #[serde(skip)]
-    categories: Vec<String>,
-    client_side: Support,
-    server_side: Support,
+    _categories: Vec<String>,
+    _client_side: Support,
+    _server_side: Support,
     #[serde(skip)]
-    body: String,
+    _body: String,
     #[serde(skip)]
-    issues_url: Option<String>,
+    _issues_url: Option<String>,
     #[serde(skip)]
-    source_url: Option<String>,
+    _source_url: Option<String>,
     #[serde(skip)]
-    wiki_url: Option<String>,
+    _wiki_url: Option<String>,
     #[serde(skip)]
-    discord_url: Option<String>,
+    _discord_url: Option<String>,
     #[serde(skip)]
-    donation_urls: Option<Vec<DonationInfo>>,
-    project_type: ProjectType,
+    _donation_urls: Option<Vec<DonationInfo>>,
+    _project_type: ProjectType,
     #[serde(skip)]
-    downloads: usize,
+    _downloads: usize,
     #[serde(skip)]
-    icon_url: Option<String>,
-    id: String,
+    _icon_url: Option<String>,
+    _id: String,
     #[serde(skip)]
-    team: String,
-    body_url: Option<String>,
+    _team: String,
+    _body_url: Option<String>,
     #[serde(skip)]
-    moderator_message: Option<ModeratorMessage>,
+    _moderator_message: Option<ModeratorMessage>,
     #[serde(skip)]
-    published: String,
+    _published: String,
     #[serde(skip)]
-    updated: String,
+    _updated: String,
     #[serde(skip)]
-    followers: usize,
-    status: ProjectStatus,
+    _followers: usize,
+    _status: ProjectStatus,
     #[serde(skip)]
-    license: Option<License>,
-    versions: Option<Vec<String>>,
+    _license: Option<License>,
+    _versions: Option<Vec<String>>,
     #[serde(skip)]
-    gallery: Option<Vec<Picture>>,
+    _gallery: Option<Vec<Picture>>,
 }

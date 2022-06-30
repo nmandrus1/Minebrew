@@ -13,7 +13,7 @@ pub enum DependencyType {
 }
 
 /// Enum that represents a mods client/server side support
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Support {
     Required,
@@ -22,7 +22,7 @@ pub enum Support {
 }
 
 /// Enum that represents whether a project is a Mod or Modpack
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ProjectType {
     Mod,
@@ -30,7 +30,7 @@ pub enum ProjectType {
 }
 
 // Enum that represents the project's status on modrinth
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ProjectStatus {
     Approved,
@@ -43,35 +43,35 @@ pub enum ProjectStatus {
 }
 
 /// Struct containing an id, platform, and url for donations
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct DonationInfo {
-    id: String,
-    platform: String,
-    url: String,
+    _id: String,
+    _platform: String,
+    _url: String,
 }
 
 /// A struct containg a message from a moderator
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct ModeratorMessage {
-    message: Option<String>,
-    body: Option<String>,
+    _message: Option<String>,
+    _body: Option<String>,
 }
 
 /// Struct containing software License information
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct License {
-    id: Option<String>,
-    name: Option<String>,
-    url: Option<String>,
+    _id: Option<String>,
+    _name: Option<String>,
+    _url: Option<String>,
 }
 
 /// struct containing the information about showcase pictures on the mod's 
 /// page on modrinth
-#[derive(Deserialize, Debug)] 
+#[derive(Deserialize)] 
 pub struct Picture {
-    url: String,
-    featured: bool,
-    title: Option<String>,
-    description: Option<String>,
-    creating: String
+    _url: String,
+    _featured: bool,
+    _title: Option<String>,
+    _description: Option<String>,
+    _creating: String
 }

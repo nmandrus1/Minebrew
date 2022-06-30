@@ -1,11 +1,10 @@
 use super::{valid_target_string, get_mc_dir}; 
 
 use serde::Deserialize;
-use dirs;
 
 use std::path::PathBuf;
 
-const DEFAULT_MC_VERSION: &'static str = "1.19";
+const DEFAULT_MC_VERSION: &str = "1.19";
 
 fn default_target() -> Option<String> { Some(DEFAULT_MC_VERSION.to_string()) }
 fn default_mc_dir() -> Option<PathBuf> { Some(get_mc_dir()) }
@@ -77,7 +76,7 @@ impl ConfigFile {
         };
 
         // Takes &Option<String> and makes it an Option<&String> then we unwrap
-        match valid_target_string(&config_file.target.as_ref().unwrap()) {
+        match valid_target_string(config_file.target.as_ref().unwrap()) {
             Ok(_) => config_file,
             Err(e) => { // invalid target string, exit program
                 eprintln!("Error with field: {e}");

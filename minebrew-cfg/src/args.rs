@@ -67,15 +67,9 @@ impl Subcommands {
 
 /// The install struct, holds data and options passed 
 /// through the install subcommand
-#[derive(Args)]
+#[derive(Args, Default)]
 pub struct InstallOpts {
     // Vector of strings representing the queries to make
     #[clap(required = true, value_parser)]
     pub queries: Vec<String>,
-}
-
-impl Default for InstallOpts {
-    fn default() -> Self {
-        Self { queries: Vec::new() }
-    }
 }

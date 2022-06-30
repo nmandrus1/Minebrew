@@ -4,9 +4,9 @@ use super::shared::*;
 
 #[derive(Deserialize)]
 struct Dependency {
-    version_id: Option<String>,
-    project_id: Option<String>,
-    dependecy_type: DependencyType,
+    _version_id: Option<String>,
+    _project_id: Option<String>,
+    _dependecy_type: DependencyType,
 }
 
 #[derive(Deserialize)]
@@ -19,17 +19,17 @@ enum VersionType {
 
 #[derive(Deserialize)]
 pub struct ModFile {
-    hashes: Hashes,
+    _hashes: Hashes,
     pub url: String,
     pub filename: String,
-    primary: bool,
-    size: usize,
+    _primary: bool,
+    _size: usize,
 }
 
 #[derive(Deserialize)]
 pub struct Hashes {
-    sha512: Option<String>,
-    sha1: Option<String>,
+    _sha512: Option<String>,
+    _sha1: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -38,28 +38,28 @@ pub struct Versions (Vec<Version>);
 /// struct that represents a particular downloadable version of a mod
 #[derive(Deserialize)]
 pub struct Version {
-    name: String,
-    version_number: String,
+    _name: String,
+    _version_number: String,
     #[serde(skip)]
-    changelog: Option<String>,
+    _changelog: Option<String>,
     #[serde(skip)]
-    dependecies: Option<Vec<Dependency>>,
+    _dependecies: Option<Vec<Dependency>>,
     pub game_versions: Vec<String>,
-    version_type: VersionType,
+    _version_type: VersionType,
     #[serde(skip)]
-    loaders: Vec<String>,
+    _loaders: Vec<String>,
     #[serde(skip)]
-    featured: bool,
+    _featured: bool,
     #[serde(skip)]
-    id: String,
+    _id: String,
     #[serde(skip)]
-    project_id: String,
+    _project_id: String,
     #[serde(skip)]
-    author_id: String,
+    _author_id: String,
     #[serde(skip)]
-    date_published: String,
+    _date_published: String,
     #[serde(skip)]
-    changelog_url: Option<String>,
+    _changelog_url: Option<String>,
     pub files: Vec<ModFile>,
 }
 

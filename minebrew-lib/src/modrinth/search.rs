@@ -26,11 +26,7 @@ impl <'a> Search <'a> {
     /// # Example
     ///
     /// ```
-    ///  use mbrew_lib::Search;
-    ///
-    ///  fn main() {
-    ///     let s = Search::new("sodium", "1.18.12");
-    ///  }
+    ///  let s = Search::new("sodium", "1.18.12");
     /// ```
     pub fn new(query: &'a str, version: &'a str) -> Self {
         Self {
@@ -55,16 +51,13 @@ impl <'a> Search <'a> {
     /// # Example
     ///
     /// ```
-    /// use mbrew_lib::{Search, SearchResponse};
-    ///
-    /// fn main() {
-    ///     let s = Search::new("sodium", "1.18.2");
+    /// let s = Search::new("sodium", "1.18.2");
     ///     
-    ///     // Sends a HTTP Request to API and expects a JSON with 
-    ///     // a list of the "hits" for the query
-    ///     let res: SearchResponse = s.search().unwrap();
+    /// // Sends a HTTP Request to API and expects a JSON with 
+    /// // a list of the "hits" for the query
+    /// let res: SearchResponse = s.search().unwrap();
     ///     
-    ///     // do stuff with response...
+    /// // do stuff with response...
     /// }
     /// ```
     pub fn search(&self) -> Result<SearchResponse, reqwest::Error> { 
@@ -118,17 +111,12 @@ impl SearchResponse {
     /// # Example
     ///
     /// ```
-    /// use mbrew_lib::{Search, SearchResponse};
+    /// let s = Search::new("sodium", "1.18.2").search().unwrap();
     ///
-    /// fn main() {
-    ///     let s = Search::new("sodium", "1.18.2").search().unwrap();
+    /// // iterator over SearchResults
+    /// let mut iter = s.iter();
     ///
-    ///     // iterator over SearchResults
-    ///     let mut iter = s.iter();
-    ///
-    ///     // 
-    ///     assert_eq!("sodium", iter.next().unwrap().slug());
-    /// }
+    /// assert_eq!("sodium", iter.next().unwrap().slug());
     /// ```
     pub fn iter(&self) -> SearchResIter {
         SearchResIter { res: self, offset: 0 }
@@ -143,14 +131,10 @@ impl SearchResponse {
     /// # Example
     ///
     /// ```
-    /// use mbrew_lib::Search;
     ///
-    /// fn main() {
+    /// let s = Search::new("No Mod has This Name", "1.30.17");
     ///
-    ///     let s = Search::new("No Mod has This Name", "1.30.17");
-    ///
-    ///     assert_eq!(s.search().unwrap().is_empty(), true);
-    /// }
+    /// assert_eq!(s.search().unwrap().is_empty(), true);
     /// ```
     pub fn is_empty(&self) -> bool {
         self.hits.is_empty()
