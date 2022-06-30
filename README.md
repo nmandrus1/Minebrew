@@ -2,6 +2,10 @@
 
 >Warning! This is a work in progress, use at your own risk
 
+1. [Planned Features](#planned_features)
+1. [Installation](#installation)
+1. [Usage](#usage)
+
 Minebrew is a package manager for minecraft mods hosted on [modrinth](https://modrinth.com)
 
 ### Planned Features
