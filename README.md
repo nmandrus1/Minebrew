@@ -72,3 +72,4 @@ and Minebrew will find the mods and download them to your mods folder.
 
 Should you have any issues please create one here on github and it will get fixed ASAP.
 
+If you have any feature requests also submit an issue with the title "[Feature Request]" followed by the feature you have in mind with a description in the notes.
