@@ -63,6 +63,7 @@ fn install(mut opts: Options) {
 
             let choice = loop { // loop until they pick a mod
                 std::io::stdin().read_line(&mut input).unwrap(); 
+                if input.trim().len() == 0 { break 1; }
                 match input.trim().parse::<usize>() {
                     Ok(num) => { // parsing was good but is it a valid option?
                         if num > results.hits.len() || num == 0 {
