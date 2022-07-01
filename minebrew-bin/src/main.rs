@@ -28,7 +28,6 @@ fn install(mut opts: Options) {
         let s = Search::new(&query, &target);
         let mut results = s.search().unwrap();
 
-        println!("Results found...");
         // filter out results that dont match the query
         results.hits = results.hits.into_iter().filter(|s_res| { 
             let title_lower = s_res.title.to_lowercase();
@@ -91,6 +90,34 @@ fn install(mut opts: Options) {
         let mut version = Version::search(&res.slug, &target).unwrap().remove(0);
         version.files.remove(0)
     }).collect::<Vec<ModFile>>();
+
+    // List all the mods ready to be downloaded and ask 
+    // the user to confirm 
+    let mut chars_left: usize = 0;
+    println!("\nMods ({})", downloads.len());
+    downloads.iter().for_each(|file| {
+        match chars_left.checked_sub(&file.filename.len() + 2) {
+            Some(left) => {
+                print!("{}  ", &file.filename);
+                chars_left = left;
+            },
+            None => {
+                print!("\n\t{}  ", &file.filename);
+                chars_left = 80 - &file.filename.len();
+            },
+        }
+    });
+
+    print!("\n\nBegin Installation? [y/n]");
+    std::io::stdout().flush().unwrap(); // flush buffer to print everything
+
+    // get user input 
+    let mut input = String::with_capacity(1);
+    std::io::stdin().read_line(&mut input).unwrap();
+    match input.chars().nth(0).unwrap() {
+        'y' | 'Y' | '\n' => {},
+        _ => std::process::exit(1),
+    };
 
     // path to mods folder
     let mods_folder = mc_dir.join("mods");
