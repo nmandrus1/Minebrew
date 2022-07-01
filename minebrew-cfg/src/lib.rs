@@ -60,8 +60,13 @@ fn valid_target_string(s: &str) -> Result<()> {
 ///
 /// Windows: finds %USERPROFILE% and then appends AppData before .minecraft
 ///
+/// macOS: finds $HOME directory and from there minecraft folder is at 
+///  ~/Library/Application Support/minecraft
+///
 /// Unix: finds $HOME and then appends .minecraft
-#[cfg(target_family = "windows")]
+/// Finds the ".minecraft" folder and exits if 
+/// it could not find it.
+#[cfg(target_os = "windows")]
 fn get_mc_dir() -> PathBuf {
     let mut home = match dirs::home_dir() {
         Some(p) => p,
@@ -76,14 +81,25 @@ fn get_mc_dir() -> PathBuf {
     home
 }
 
-/// Finds the ".minecraft" folder and exits if 
-/// it could not find it.
-///
-/// Windows: finds %USERPROFILE% and then appends AppData before .minecraft
-///
-/// Unix: finds $HOME and then appends .minecraft
 
-#[cfg(target_family = "unix")]
+
+#[cfg(target_os = "macos")]
+fn get_mc_dir() -> PathBuf {
+    let mut home = match dirs::home_dir() {
+        Some(p) => p,
+        None => {
+            eprintln!("Impossible to locate home directory...");
+            std::process::exit(1);
+        }
+    };
+    
+    home.push("Library");
+    home.push("Application Support");
+    home.push("minecraft");
+    home
+}
+
+#[cfg(target_os = "linux")]
 fn get_mc_dir() -> PathBuf {
     let mut home = match dirs::home_dir() {
         Some(p) => p,
