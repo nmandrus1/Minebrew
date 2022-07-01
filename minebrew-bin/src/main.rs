@@ -111,3 +111,28 @@ fn install(mut opts: Options) {
     
     println!("Success!");
 }
+
+fn levenshtein(s1: &str, s2:&str) -> usize {
+    let (short, long) = if s1.len() > s2.len() {
+        (s2, s1)
+    } else {
+        (s1, s2)
+    };
+
+    let n = long.len();
+    let m = long.len();
+
+    let mut costs: Vec<usize> = (0..n+1).collect();
+    costs[0] = i + 1;
+    let mut corner = i;
+    for (i, c) in short.chars().enumerate() {
+        let upper = costs[j + 1];
+        if c == c2 {
+            costs[j + 1] = corner;
+        } else {
+            costs[j + 1] = 1 + [costs[j], upper, corner].iter().min().unwrap();
+        }
+        corner = upper
+    }
+    costs[n]
+}
