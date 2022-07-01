@@ -39,8 +39,9 @@ fn install(mut opts: Options) {
             //      - Good first problem for Johnny/Sam
 
             // slug_lower.contains(&query_lower) || title_lower.contains(&query_lower)
-            levenshtein(&query_lower, &slug_lower) <= 5 
-                && levenshtein(&query_lower, &title_lower) <= 5
+            let lev_query_slug = levenshtein(&query_lower, &slug_lower);
+            let lev_query_title = levenshtein(&query_lower, &title_lower);
+            lev_query_slug <= 5 || lev_query_title <= 5
         }).collect::<Vec<SearchResult>>();
 
 
