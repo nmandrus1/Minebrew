@@ -39,7 +39,9 @@ fn install(mut opts: Options) {
             // TODO: Replace with homemade method that wouldn't allocate 
             //      - Good first problem for Johnny/Sam
 
-            slug_lower.contains(&query_lower) || title_lower.contains(&query_lower)
+            // slug_lower.contains(&query_lower) || title_lower.contains(&query_lower)
+            levenshtein(&query_lower, &slug_lower) <= 5 
+                && levenshtein(&query_lower, &title_lower) <= 5
         }).collect::<Vec<SearchResult>>();
 
 
@@ -120,19 +122,20 @@ fn levenshtein(s1: &str, s2:&str) -> usize {
     };
 
     let n = long.len();
-    let m = long.len();
 
     let mut costs: Vec<usize> = (0..n+1).collect();
-    costs[0] = i + 1;
-    let mut corner = i;
     for (i, c) in short.chars().enumerate() {
+        costs[0] = i + 1;
+        let mut corner = i;
+        for (j, c2) in long.chars().enumerate() {
         let upper = costs[j + 1];
-        if c == c2 {
-            costs[j + 1] = corner;
-        } else {
-            costs[j + 1] = 1 + [costs[j], upper, corner].iter().min().unwrap();
+            if c == c2 {
+                costs[j + 1] = corner;
+            } else {
+                costs[j + 1] = 1 + [costs[j], upper, corner].iter().min().unwrap();
+            }
+            corner = upper
         }
-        corner = upper
     }
     costs[n]
 }
