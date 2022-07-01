@@ -68,7 +68,8 @@ fn valid_target_string(s: &str) -> Result<()> {
 /// it could not find it.
 #[cfg(target_os = "windows")]
 fn get_mc_dir() -> PathBuf {
-    let mut home = match dirs::home_dir() {
+    // Should put us in C:\Users\USERNAME\AppData\Roaming
+    let mut home = match dirs::config_dir() {
         Some(p) => p,
         None => {
             eprintln!("Impossible to locate home directory...");
@@ -76,7 +77,6 @@ fn get_mc_dir() -> PathBuf {
         }
     };
 
-    home.push("AppData");
     home.push(".minecraft");
     home
 }
@@ -85,7 +85,8 @@ fn get_mc_dir() -> PathBuf {
 
 #[cfg(target_os = "macos")]
 fn get_mc_dir() -> PathBuf {
-    let mut home = match dirs::home_dir() {
+    // should be $HOME/Library/Application Support/
+    let mut home = match dirs::config_dir() {
         Some(p) => p,
         None => {
             eprintln!("Impossible to locate home directory...");
@@ -93,14 +94,13 @@ fn get_mc_dir() -> PathBuf {
         }
     };
     
-    home.push("Library");
-    home.push("Application Support");
     home.push("minecraft");
     home
 }
 
 #[cfg(target_os = "linux")]
 fn get_mc_dir() -> PathBuf {
+    // should be in /home/USER/
     let mut home = match dirs::home_dir() {
         Some(p) => p,
         None => {
@@ -115,7 +115,7 @@ fn get_mc_dir() -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use super::valid_target_string;
+    use super::*;
 
     #[test]
     fn test_version_parser() {
