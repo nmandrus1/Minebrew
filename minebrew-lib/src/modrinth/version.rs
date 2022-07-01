@@ -109,7 +109,7 @@ pub struct Version {
 
 impl Version {
     pub fn search(slug: &str, version: &str) -> Result<Vec<Version>, reqwest::Error> { 
-        let json_str = match reqwest::blocking::get(format!("https://api.modrinth.com/v2/project/{}/version?game_versions[\"{}\"]", slug, version)) {
+        let json_str = match reqwest::blocking::get(format!("https://api.modrinth.com/v2/project/{}/version?game_versions=[\"{}\"]", slug, version)) {
             Err(e) => { // Handle ERROR case for GET request
                 // if it is a connection error then let the user know
                 if e.is_connect() {
