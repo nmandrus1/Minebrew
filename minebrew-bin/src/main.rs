@@ -1,11 +1,11 @@
 use std::io::Write;
 
 use minebrew_lib::modrinth::{ Search, SearchResult, Version, ModFile };
-use minebrew_cfg::{ load_options, Options, Subcommands };
+use minebrew_cfg::{ Options, Subcommands };
 
 fn main() {
     // -------- LOAD CONFIG -------- 
-    let opts = load_options();
+    let opts = Options::parse();
     match opts.command {
         Subcommands::Install(_) => install(opts),
         _ => todo!(),
@@ -18,8 +18,8 @@ fn install(mut opts: Options) {
     let install_opts = opts.command.install_opts().unwrap();
 
     let queries = install_opts.queries;
-    let target = opts.target.unwrap();
-    let mc_dir = opts.mc_dir.unwrap();
+    let target = install_opts.target;
+    let mc_dir = install_opts.mc_dir;
 
     // Loop through every query made 
     // Turns quries into ModFile structs which have a download link

@@ -1,4 +1,4 @@
-use clap::{Args, Parser, Subcommand};
+use clap::{Arg, Command, ArgMatches};
 use super::valid_target_string;
 
 use std::path::PathBuf;
@@ -15,51 +15,101 @@ fn parse_target(s: &str) -> Result<String, String> {
     }
 }
 
+fn arg_target<'a>() -> Arg<'a> {
+    Arg::new("target")
+        .short('t')
+        .long("target")
+        .help("Minecraft version the mod(s) should be compatible with")
+        .takes_value(true)
+        .value_parser(parse_target)
+}
+
+fn arg_mc_dir<'a>() -> Arg<'a> {
+    Arg::new("mc_dir")
+        .short('m')
+        .long("mc_dir")
+        .help("Path to .minecraft (minecraft for MacOS) folder")
+        .takes_value(true)
+        .value_parser(clap::value_parser!(PathBuf))
+}
+
 /// Struct to hold the arguments passed through the command line
 ///
 /// fields:
 /// - command: Subcommands
 /// - target: Option<String>
 /// - mc_dir: Option<PathBuf>
-#[derive(Parser)]
-#[clap(name = "Minebrew")]
-#[clap(author = "The Brogrammers")]
-#[clap(version = "0.1")]
-#[clap(about = "A fast and hassle-free mod package manager for minecraft")]
-#[clap(long_about = None)]
 pub struct Options {
     // The Subcommand enum which holds the struct 
     // with the arguments passed through
-    #[clap(subcommand)]
     pub command: Subcommands,
-
-    #[clap(short, long)]
-    #[clap(help = "override the default Minecraft version")]
-    #[clap(value_parser = parse_target)] 
-    pub target: Option<String>,
-
-    #[clap(short, long, help = "path to \".minecraft\"", value_parser)] 
-    pub mc_dir: Option<PathBuf>,
 }
 
 impl Options {
-    pub fn parse_args() -> Self {
-        Self::parse()
+    pub fn parse() -> Self {
+        use super::ConfigFile;
+
+        // load config file for Options Defaults
+        let cfg_file = ConfigFile::load();
+        // unwrap them here so we dont have to later
+        let target = cfg_file.target.unwrap();
+        let mc_dir = cfg_file.mc_dir.unwrap();
+
+        // App Structure
+        let app = Command::new("mbrew")
+        .name("Minebrew")
+        .author("The Brogrammers")
+        .version("0.0.2")
+        .about("A fast and hassle-free mod package manager for minecraft")
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        // install subcommand
+        .subcommand(
+            Command::new("install")
+                .about("Searches for and installs a mod")
+                .arg(
+                    // install specific argument defined here
+                    Arg::new("queries")
+                        .help("the mod(s) to installs separated by spaces")
+                        .name("QUERIES")
+                        .takes_value(true)
+                        .multiple_values(true)
+                        .required(true)
+                ) // Set default values for target and mc_dir 
+                  // arg_target and arg_mc_dir return args bc
+                  // they will be used outside of install
+                  // we add default values here for lifetime reasons
+                .arg( // --target option
+                        arg_target()
+                            .default_value(&target)
+                            .hide_default_value(true)
+                )
+                .arg( // --mc_dir options
+                        arg_mc_dir()
+                            .default_value_os(mc_dir.as_os_str())
+                            .hide_default_value(true)
+                )
+        );
+
+        let mut matches = app.get_matches();
+
+        let (cmd, sub_matches) = matches.remove_subcommand().unwrap();
+        match (cmd.as_str(), sub_matches) {
+            ("install", install_matches) => Self {
+                command: Subcommands::Install(InstallOpts::from(install_matches))
+            },
+
+            _ => unreachable!()
+        }
     }
 }
 
 // Our subcommands
-#[derive(Subcommand)]
 pub enum Subcommands {
-    #[clap(arg_required_else_help = true, about = "Subcommand used to install mods")]
     Install(InstallOpts),
-    #[clap(arg_required_else_help = true, about = "Coming soon")]
     Search,
-    #[clap(arg_required_else_help = true, about = "Coming soon")]
     Remove,
-    #[clap(arg_required_else_help = true, about = "Coming soon")]
     Update,
-    #[clap(arg_required_else_help = true, about = "Coming soon")]
     Config, 
 }
 
@@ -75,11 +125,20 @@ impl Subcommands {
 
 // The install struct, holds data and options passed 
 // through the install subcommand
-#[derive(Args, Default)]
+#[derive(Default)]
 pub struct InstallOpts {
     // Vector of strings representing the queries to make
-    #[clap(required = true)]
-    #[clap(help = "One or more mods to download, entries are separated by spaces")]
-    #[clap(value_parser)]
     pub queries: Vec<String>,
+    pub target: String,
+    pub mc_dir: PathBuf,
+}
+
+impl From<ArgMatches> for InstallOpts {
+    fn from(mut matches: ArgMatches) -> Self {
+        Self {
+            queries: matches.remove_many("queries").unwrap().collect(),
+            target: matches.remove_one::<String>("target").unwrap(),
+            mc_dir: matches.remove_one::<PathBuf>("mc_dir").unwrap()
+        }
+    }
 }

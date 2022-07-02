@@ -6,22 +6,32 @@ mod config_file;
 use config_file::ConfigFile;
 pub use args::{ Options, Subcommands };
 
-use anyhow::Result;
-
 use std::path::PathBuf;
 
-pub fn load_options() -> Options {
-    let mut opts = Options::parse_args();
-    let config_file = ConfigFile::load();
+#[derive(Debug)]
+pub enum ConfigError {
+    TargetInvalidNum,
+    TargetInvalidChars,
+}
 
-    match opts.command {
-        Subcommands::Install(_) => {
-            opts.target.get_or_insert(config_file.target.unwrap());
-            opts.mc_dir.get_or_insert(config_file.mc_dir.unwrap());
-        },
-        _ => todo!()
-    };
-    opts
+impl std::error::Error for ConfigError {} 
+
+impl std::fmt::Display for ConfigError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConfigError::TargetInvalidNum => 
+                write!(f, "isn't a valid version number"),
+
+            ConfigError::TargetInvalidChars => 
+                write!(f, "contains invalid sequence of characters"),
+        }
+    }
+}
+
+/// Convience functino for ending the program with an error message
+pub fn exit_with_msg(msg: &str) -> ! {
+    eprintln!("{msg}");
+    std::process::exit(1);
 }
 
 /// loads the Configuration Options
@@ -32,22 +42,25 @@ pub fn load_options() -> Options {
 
 /// Function to determine whether a string that is supposed to 
 /// represent a version number is valid
-fn valid_target_string(s: &str) -> Result<()> {
+fn valid_target_string(s: &str) -> Result<(), ConfigError> { 
     // check start, end, and whether it contains required info
 
     if !s.contains('.') 
         || !s.contains(|c: char| c.is_ascii_digit()) 
         || s.starts_with(|c: char| !c.is_ascii_digit()) 
-        || s.ends_with(|c: char| !c.is_ascii_digit()) {
+        || s.ends_with(|c: char| !c.is_ascii_digit()) 
+        || s.chars().filter(|c| c == &'.').count() >= 3 {
 
-        anyhow::bail!("\"target\" isn't a valid version number")
+        // anyhow::bail!("\"target\" isn't a valid version number")
+        return Err(ConfigError::TargetInvalidNum);
     }
 
     // if c is a digit or ( c is '.' and the char before is not "." )
     if !s.chars().enumerate().all(|(i, c)| { 
         c.is_ascii_digit() || (c == '.' && (&s[i-1..i] != "."))}) { 
 
-        anyhow::bail!("\"target\" contains invalid sequence of characters")
+        // anyhow::bail!("\"target\" contains invalid sequence of characters")
+        return Err(ConfigError::TargetInvalidChars);
     }
 
     Ok(())
@@ -69,48 +82,28 @@ fn valid_target_string(s: &str) -> Result<()> {
 #[cfg(target_os = "windows")]
 fn get_mc_dir() -> PathBuf {
     // Should put us in C:\Users\USERNAME\AppData\Roaming
-    let mut home = match dirs::config_dir() {
-        Some(p) => p,
-        None => {
-            eprintln!("Impossible to locate home directory...");
-            std::process::exit(1);
-        }
-    };
-
-    home.push(".minecraft");
-    home
+    match dirs::config_dir() {
+        Some(config_dir) => config_dir.join(".minecraft"),
+        None =>  exit_with_msg("Impossible to locate home directory..."),
+    }
 }
-
-
 
 #[cfg(target_os = "macos")]
 fn get_mc_dir() -> PathBuf {
     // should be $HOME/Library/Application Support/
-    let mut home = match dirs::config_dir() {
-        Some(p) => p,
-        None => {
-            eprintln!("Impossible to locate home directory...");
-            std::process::exit(1);
-        }
-    };
-    
-    home.push("minecraft");
-    home
+    match dirs::config_dir() {
+        Some(config_dir) => config_dir.join("minecraft"),
+        None =>  exit_with_msg("Impossible to locate home directory..."),
+    }
 }
 
 #[cfg(target_os = "linux")]
 fn get_mc_dir() -> PathBuf {
     // should be in /home/USER/
-    let mut home = match dirs::home_dir() {
-        Some(p) => p,
-        None => {
-            eprintln!("Impossible to locate home directory...");
-            std::process::exit(1);
-        }
-    };
-    
-    home.push(".minecraft");
-    home
+    match dirs::home_dir() {
+        Some(home_dir) => home_dir.join(".minecraft"),
+        None =>  exit_with_msg("Impossible to locate home directory..."),
+    }
 }
 
 #[cfg(test)]
@@ -139,9 +132,10 @@ mod tests {
         let v8 = "1.";
         let v9 = ".1";
         let va = ".1.";
-        let vb = "..";
-        let vc = ".";
-        let vd = "a.b.c";
+        let vb = "1.2.3.4";
+        let vc = "..";
+        let vd = ".";
+        let ve = "a.b.c";
 
         assert!(valid_target_string(v6).is_err());
         assert!(valid_target_string(v7).is_err());
@@ -151,5 +145,6 @@ mod tests {
         assert!(valid_target_string(vb).is_err());
         assert!(valid_target_string(vc).is_err());
         assert!(valid_target_string(vd).is_err());
+        assert!(valid_target_string(ve).is_err());
     }
 }
