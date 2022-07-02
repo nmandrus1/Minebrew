@@ -34,9 +34,7 @@ pub struct ModFile {
 
     pub filename: String,
 
-    #[serde(skip)]
-    #[serde(rename = "primary")]
-    _primary: bool,
+    pub primary: bool,
 
     #[serde(skip)]
     #[serde(rename = "size")]

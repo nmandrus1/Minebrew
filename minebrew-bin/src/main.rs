@@ -88,8 +88,9 @@ fn install(mut opts: Options) {
         // reference to data created in this closure then it wouldnt exist anymore once 
         // the closure is done, so we move the data into the "downloads" vector at the top
         // so the data we need is still alive 
-        let mut version = Version::search(&res.slug, &target).unwrap().remove(0);
-        version.files.remove(0)
+        let version = Version::search(&res.slug, &target).unwrap().remove(0);
+        // finds the primary file in the list of files
+        version.files.into_iter().find(|f| f.primary).unwrap()
     }).collect::<Vec<ModFile>>();
 
     // List all the mods ready to be downloaded and ask 
@@ -115,8 +116,8 @@ fn install(mut opts: Options) {
     // get user input 
     let mut input = String::with_capacity(1);
     std::io::stdin().read_line(&mut input).unwrap();
-    match input.chars().nth(0).unwrap() {
-        'y' | 'Y' | '\n' => {},
+    match input.trim().chars().nth(0) {
+        Some('y') | Some('Y') | None => {},
         _ => std::process::exit(1),
     };
 
