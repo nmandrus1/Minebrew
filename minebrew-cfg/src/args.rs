@@ -71,7 +71,6 @@ impl Options {
                     // install specific argument defined here
                     Arg::new("queries")
                         .help("the mod(s) to installs separated by spaces")
-                        .name("QUERIES")
                         .takes_value(true)
                         .multiple_values(true)
                         .required(true)
@@ -94,6 +93,7 @@ impl Options {
         let mut matches = app.get_matches();
 
         let (cmd, sub_matches) = matches.remove_subcommand().unwrap();
+
         match (cmd.as_str(), sub_matches) {
             ("install", install_matches) => Self {
                 command: Subcommands::Install(InstallOpts::from(install_matches))
