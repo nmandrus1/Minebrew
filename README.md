@@ -41,16 +41,22 @@ next navigate into the `Minebrew` directory and and run the following command:
 
 ```
 $ cd Minebrew
-$ cargo build -r
+$ cargo install --path minebrew-bin
 ```
 
-This will build Minebrew from source and place a binary in 
+This will build Minebrew from source and place a binary in your `.cargo/bin` folder which on unix systems is usually
 
-`Minebrew/target/release/mbrew`
+`$HOME/.cargo/bin/mbrew`
+
+and on Windows 
+
+`C:\Users\USERNAME\.cargo\bin\mbrew.exe`
 
 From there you can do whatever you'd like with the binary.
 
-NOTE: Minebrew assumes you have a .minecraft folder so please be sure to have Minecraft installed 
+**NOTEs**: 
+- Minebrew assumes you have a .minecraft folder so please be sure to have Minecraft installed 
+- the `reqwest` library requires libssl-dev to be installed, this is the case on most systems but if you get an error about openssl make sure to install this package
 
 ### Usage
 ```
