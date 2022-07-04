@@ -15,17 +15,13 @@ fn main() {
 fn install(mut opts: Options) {
     // unwraping is okay here because we should never not 
     // pass any other Subcommand variant other than Install
-    let install_opts = opts.command.install_opts().unwrap();
-
-    let queries = install_opts.queries;
-    let target = install_opts.target;
-    let mc_dir = install_opts.mc_dir;
+    let i_opts = opts.command.install_opts().unwrap();
 
     // Loop through every query made 
     // Turns quries into ModFile structs which have a download link
-    let downloads: Vec<ModFile> = queries.into_iter().map(|query| {
-        println!("Searching modrinth for {} for Minecraft {}", query, &target);
-        let s = Search::new(&query, &target);
+    let downloads: Vec<ModFile> = i_opts.queries.into_iter().map(|query| {
+        println!("Searching modrinth for {} for Minecraft {}", query, &i_opts.target);
+        let s = Search::new(&query, &i_opts.target);
         let mut results = s.search().unwrap();
 
         // filter out results that dont match the query
@@ -88,7 +84,7 @@ fn install(mut opts: Options) {
         // reference to data created in this closure then it wouldnt exist anymore once 
         // the closure is done, so we move the data into the "downloads" vector at the top
         // so the data we need is still alive 
-        let version = Version::search(&res.slug, &target).unwrap().remove(0);
+        let version = Version::search(&res.slug, &i_opts.target).unwrap().remove(0);
         // finds the primary file in the list of files
         version.files.into_iter().find(|f| f.primary).unwrap()
     }).collect::<Vec<ModFile>>();
@@ -122,7 +118,7 @@ fn install(mut opts: Options) {
     };
 
     // path to mods folder
-    let mods_folder = mc_dir.join("mods");
+    let mods_folder = i_opts.mc_dir.join("mods");
 
     println!("\nSearching for mods folder...");
     // if mods folder doesn't exist then make one 
