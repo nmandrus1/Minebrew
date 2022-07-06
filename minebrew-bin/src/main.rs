@@ -109,7 +109,7 @@ fn install(mut opts: Options) {
     print!("\n\nBegin Installation? [y/n]");
     std::io::stdout().flush().unwrap(); // flush buffer to print everything
 
-    // get user input 
+    // get user input
     let mut input = String::with_capacity(1);
     std::io::stdin().read_line(&mut input).unwrap();
     match input.trim().chars().nth(0) {
