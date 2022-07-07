@@ -37,8 +37,6 @@ fn arg_mc_dir<'a>() -> Arg<'a> {
 ///
 /// fields:
 /// - command: Subcommands
-/// - target: Option<String>
-/// - mc_dir: Option<PathBuf>
 pub struct Options {
     // The Subcommand enum which holds the struct 
     // with the arguments passed through

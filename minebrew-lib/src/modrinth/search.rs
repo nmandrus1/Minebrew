@@ -33,18 +33,18 @@ impl <'a> Search <'a> {
 
     /// Returns an iterator over the urls each of which is a search 
     /// on the modrinth database
-    pub fn urls(&self) -> impl Iterator<Item=String> + '_ {
+    pub fn urls(&self) -> impl Iterator<Item=(String, &str)> + '_ {
         self.queries.iter().map(|q| {
-            format!(
+            (format!(
                 "https://api.modrinth.com/v2/search?query={}&limit={}&index={}&facets=[[\"versions:{}\"]]",
-                q, self.limit, self.index, self.version)
+                q, self.limit, self.index, self.version), q.as_str())
         })
     }
 }
 
 /// Struct that represents the JOSN Response from a search 
 #[derive(Deserialize)]
-pub struct SearchResponse {
+pub struct SearchResponse<'a> {
     pub hits: Vec<SearchResult>,
 
     #[serde(skip)]
@@ -58,27 +58,38 @@ pub struct SearchResponse {
     #[serde(skip)]
     #[serde(rename = "total_hits")]
     _total_hits: u8,
+
+    #[serde(skip)]
+    query: Option<&'a str>
 }
 
-impl SearchResponse {
+impl <'a> SearchResponse <'a> {
+    /// Function to set the query that the SearchResponse was generated from
+    pub fn set_query(&mut self, query: &'a str) {
+        self.query = Some(query);
+    }
+
     /// Function that takes a query and an lienence value and filters 
     /// out any search result that isnt withint a `lenience` levenshtein 
     /// distance
-    pub fn filter(&mut self, query: &str, lenience: usize) {
+    pub fn filter(&mut self, lenience: usize) {
+        let query = self.query.unwrap();
         self.hits.retain(|res| {
-            levenshtein(&query, &res.title) <= lenience 
-            || levenshtein(&query, &res.slug) <= lenience 
+            levenshtein(query, &res.title) <= lenience 
+            || levenshtein(query, &res.slug) <= lenience 
         })
     }
 
     /// Function that narrows down the search results of a response 
     /// to a single one
-    pub fn pick_result(mut self, query: &str) -> SearchResult {
+    pub fn pick_result(mut self) -> SearchResult {
+        let query = self.query.unwrap();
+
         if self.hits.is_empty() {
             eprintln!("error: {} not found", query);
             std::process::exit(1);
         } else if self.hits.len() == 1 {
-            self.hits.remove(0)
+            self.hits.swap_remove(0)
         } else {
             // Numbered list of results
             self.hits.iter().enumerate()
@@ -92,7 +103,7 @@ impl SearchResponse {
 
             let choice = loop { // loop until they pick a mod
                 std::io::stdin().read_line(&mut input).unwrap();
-                if input.trim().len() == 0 { break 1; }
+                if input.trim().is_empty() { break 1; }
                 match input.trim().parse::<usize>() {
                     Ok(num) => { // parsing was good but is it a valid option?
                         if num > self.hits.len() || num == 0 {
@@ -107,7 +118,7 @@ impl SearchResponse {
                 };
             };
 
-            self.hits.remove(choice-1)
+            self.hits.swap_remove(choice-1)
         }
     }
 }
@@ -150,7 +161,7 @@ fn levenshtein(s1: &str, s2:&str) -> usize {
 
 /// A Struct that represents the information given to the api caller contained 
 /// in the response of a search more info here: https://docs.modrinth.com/docs/tutorials/api_search/
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct SearchResult {
     pub slug: String,
 

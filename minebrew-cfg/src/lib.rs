@@ -29,7 +29,7 @@ impl std::fmt::Display for ConfigError {
 }
 
 /// Convience functino for ending the program with an error message
-pub fn exit_with_msg(msg: &str) -> ! {
+pub fn exit_with_msg<'a, T: AsRef<str> + std::fmt::Display>(msg: T) -> ! {
     eprintln!("{msg}");
     std::process::exit(1);
 }

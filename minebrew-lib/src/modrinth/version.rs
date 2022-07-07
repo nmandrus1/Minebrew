@@ -38,9 +38,7 @@ pub struct ModFile {
 
     pub primary: bool,
 
-    #[serde(skip)]
-    #[serde(rename = "size")]
-    _size: usize,
+    pub size: usize,
 }
 
 impl Display for ModFile {
@@ -51,8 +49,8 @@ impl Display for ModFile {
 
 #[derive(Deserialize, Default)]
 pub struct Hashes {
-    _sha512: Option<String>,
-    _sha1: Option<String>,
+    _sha512: String,
+    _sha1: String,
 }
 
 #[derive(Deserialize)]

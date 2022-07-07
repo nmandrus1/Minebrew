@@ -1,4 +1,4 @@
-use super::{valid_target_string, get_mc_dir}; 
+use super::{valid_target_string, get_mc_dir, exit_with_msg}; 
 
 use serde::Deserialize;
 
@@ -13,6 +13,7 @@ fn default_mc_dir() -> Option<PathBuf> { Some(get_mc_dir()) }
 pub struct ConfigFile {
     #[serde(default = "default_target")]
     pub target: Option<String>,
+
     #[serde(default = "default_mc_dir")]
     pub mc_dir: Option<PathBuf>,
 }
@@ -57,31 +58,23 @@ impl ConfigFile {
         // attempt to read config.toml to string handling 
         // specific errors by loading a default configuration
 
+        // /home/nels/.config/minebrew      config.toml --> /home/nels/.config/minebrew/config.toml
+
         let config_file: ConfigFile = match std::fs::read_to_string(config_dir.join("config.toml")) { 
             Ok(cfg) => {  
                 // if the file was read successfully try to parse it
-                toml::from_str(&cfg)
-                    .unwrap_or_else(|e| { // if can't be parsed print err msg and exit
-                        eprintln!("Error in config file: {}", e);
-                        std::process::exit(1);
-                    })
-            },
+                toml::from_str(&cfg) // if can't be parsed print err msg and exit
+                    .unwrap_or_else(|e| exit_with_msg(format!("Error in config file: {}", e)))},
             // Cool syntax I didn't know about 
             // if the file isnt found then use default config otherwise return an error
             Err(err) if err.kind() == std::io::ErrorKind::NotFound => return ConfigFile::default(),
-            Err(err) => {
-                eprintln!("Error reading \"config.toml\": {err}");
-                std::process::exit(1);
-            }
+            Err(err) => exit_with_msg(format!("Error reading \"config.toml\": {err}"))
         };
 
         // Takes &Option<String> and makes it an Option<&String> then we unwrap
         match valid_target_string(config_file.target.as_ref().unwrap()) {
             Ok(_) => config_file,
-            Err(e) => { // invalid target string, exit program
-                eprintln!("Error with field: {e}");
-                std::process::exit(1);
-            }, 
+            Err(e) => exit_with_msg(format!("Error with field: {e}")) // invalid target string, exit program
         } 
     }
 }
