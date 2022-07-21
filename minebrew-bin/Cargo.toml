@@ -12,3 +12,4 @@ path = "src/main.rs"
 [dependencies]
 minebrew-lib = { path = "../minebrew-lib"}
 minebrew-cfg = { path = "../minebrew-cfg"}
+tokio = { version = "1.19.2", features = ["full"] }

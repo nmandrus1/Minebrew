@@ -13,7 +13,7 @@ pub enum DependencyType {
 }
 
 /// Enum that represents a mods client/server side support
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Support {
     Required,
@@ -22,7 +22,7 @@ pub enum Support {
 }
 
 /// Enum that represents whether a project is a Mod or Modpack
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ProjectType {
     Mod,
