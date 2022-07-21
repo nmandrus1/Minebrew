@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{io::Write, fs::OpenOptions};
 
 use minebrew_lib::modrinth::{ Minebrew, Search, SearchResult };
 use minebrew_cfg::{ Options, Subcommands };
