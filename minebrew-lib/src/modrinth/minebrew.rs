@@ -12,14 +12,14 @@ use std::path::Path;
 /// modrinth.com and the user as well as contain all the info 
 /// on currently installed packages
 pub struct Minebrew {
-    client: Client
+    client: Client,
     //db goes here
 }
 
 /// Default init for Minebrew
 impl Default for Minebrew {
     fn default() -> Self {
-        Self { client: Client::new() }
+        Self { client: Client::default() }
     }
 }
 
@@ -37,7 +37,7 @@ impl Minebrew {
     }
 
     pub async fn files_from_results(&self, results: &[SearchResult], version: &str) -> Vec<ModFile> {
-        stream::iter(results.into_iter()).map(|res| async {
+        stream::iter(results.iter()).map(|res| async {
             let url = format!("https://api.modrinth.com/v2/project/{}/version?game_versions=[\"{}\"]", res.slug, version);
             let resp = tokio::spawn(self.client.get(url).send()).await.unwrap().unwrap();
 
@@ -79,7 +79,7 @@ impl Minebrew {
                 let bar = format!("[{:#<p_width$}{: <s_width$}] {}%", "", "", (percent * 100.0) as usize, p_width=progress, s_width = space);
 
                 print!("\x1B[2K\x1B[60DDownloading...\t{}", bar);
-                std::io::stdout().flush();
+                std::io::stdout().flush().unwrap();
             }
         }
 
