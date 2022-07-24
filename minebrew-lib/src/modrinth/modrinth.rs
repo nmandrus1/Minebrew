@@ -1,8 +1,10 @@
-use reqwest::Client;
+use reqwest::{Client, Response};
 use std::fmt::Write;
 
-trait ToQueryParam {
-    fn to_query_param(&self) -> String;
+const BASE_REQUEST: &str = "https://api.modrinth.com/v2/";
+
+trait ToRequest {
+    fn to_req(&self) -> String;
 }
 
 /// A Struct to represent the facets query parameter for the Modrinth search API
@@ -37,9 +39,7 @@ impl Facets {
     fn license(&mut self, license: String) {
         self.license = Some(license);
     }
-}
 
-impl ToQueryParam for Facets {
     fn to_query_param(&self) -> String {
         let mut ret = String::from("facets=[");
 
@@ -73,13 +73,19 @@ impl ToQueryParam for Facets {
 }
 
 struct EmptyReq;
+// https://api.modrinth.com/v2
 
 #[derive(Default)]
 struct Search {
-    queries: Vec<String>,
-    limit: Option<usize>,
-    index: Option<String>,
-    facets: Option<Facets>,
+    query: String,
+    version: String,
+} 
+
+impl ToRequest for Search {
+    fn to_req(&self) -> String {
+        format!("{}/search?query={}&facets=[[\"versions:{}\"]]", 
+            BASE_REQUEST, self.query, self.version)
+    }
 }
 
 struct Project {}
@@ -91,9 +97,6 @@ struct Modrinth<ReqType> {
 
     // The generic that determines what methods are available to the caller
     req_type: ReqType,
-
-    // the HTTP request being built, always starts as "https://api.modrinth.com/v2/"
-    request: String,
 }
 
 impl Modrinth<EmptyReq> {
@@ -101,19 +104,39 @@ impl Modrinth<EmptyReq> {
         Self {
             client: Client::default(),
             req_type: EmptyReq,
-            request: String::from("https://api.modrinth.com/v2/")
         }
     }
 
-    pub fn search(self) -> Modrinth<Search> {
+    pub fn search(&self, search: Search) -> Modrinth<Search> {
         Modrinth { 
-            client: self.client, 
-            req_type: Search::default(), 
-            request: self.request 
+            client: self.client.clone(),
+            req_type: search, 
         }
     }
 }
 
 impl Modrinth<Search> {
-    pub fn 
+    pub fn query(&mut self, query: String) {
+        self.req_type.query = query;
+    }
+}
+
+/// For any type that implements the ToRequest trait (a trait that turns data into a valid API call)
+// return the Future for processing elsewhere
+impl<R: ToRequest> Modrinth<R> {
+    pub async fn get(&mut self) -> impl futures::Future<Output=reqwest::Result<Response>> {
+        self.client.get(self.req_type.to_req()).send()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let modrinth = Modrinth::new();
+        modrinth.search(Search { query: "sodium".into(), version: "1.19".into() }).get();
+        modrinth.search(Search { query: "fabric-api".into(), version: "1.19".into() }).get();
+    }
 }

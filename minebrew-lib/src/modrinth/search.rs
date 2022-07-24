@@ -8,7 +8,7 @@ use serde::Deserialize;
 /// for a query and then handle the result
 pub struct Search <'a> {
     /// The string this will be the query
-    pub queries: Vec<String>,
+    pub queries: &'a[&'a str],
 
     /// limit the number of search results per query
     pub limit: u8,
@@ -22,9 +22,9 @@ pub struct Search <'a> {
 
 impl <'a> Search <'a> {
     /// Construct a search to make on the modrinth database
-    pub fn new(queries: &[String], version: &'a str) -> Self {
+    pub fn new(queries: &[&str], version: &'a str) -> Self {
         Self {
-            queries: queries.to_vec(),
+            queries,
             limit: 5,
             index: "relevance",
             version, 
@@ -34,10 +34,10 @@ impl <'a> Search <'a> {
     /// Returns an iterator over the urls each of which is a search 
     /// on the modrinth database
     pub fn urls(&self) -> impl Iterator<Item=(String, &str)> + '_ {
-        self.queries.iter().map(|q| {
+        self.queries.into_iter().map(|q| {
             (format!(
                 "https://api.modrinth.com/v2/search?query={}&limit={}&index={}&facets=[[\"versions:{}\"]]",
-                q, self.limit, self.index, self.version), q.as_str())
+                q, self.limit, self.index, self.version), *q)
         })
     }
 }
@@ -81,7 +81,7 @@ impl <'a> SearchResponse <'a> {
     }
 
     /// Function that narrows down the search results of a response 
-    /// to a single one
+    /// to a single one either through filtering or user input
     pub fn pick_result(mut self) -> SearchResult {
         let query = self.query.unwrap();
 
