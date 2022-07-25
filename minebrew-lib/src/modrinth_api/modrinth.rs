@@ -5,13 +5,12 @@ use reqwest::{Client, Response};
 
 use super::shared::{ProjectType, Category};
 
+// have to import this here bc stupid publicity rules abt traits
+use super::traits::ToRequest;
+
 const BASE_REQUEST: &str = "https://api.modrinth.com/v2/";
 
-/// Trait for any struct that can be turned into an API Request
-trait ToRequest {
-    /// Outputs a string that represents an API request
-    fn to_req(&self) -> String;
-}
+
 
 /// A Struct to represent the facets query parameter for the Modrinth search API
 #[derive(Default)]
@@ -60,7 +59,7 @@ struct EmptyReq;
 
 impl ToRequest for EmptyReq {
     fn to_req(&self) -> String {
-        format!("{}", BASE_REQUEST)
+        BASE_REQUEST.to_string()
     }
 }
 
@@ -315,6 +314,8 @@ impl<R: ToRequest> Modrinth<R> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use httpmock;
 
     #[test]
     fn it_works() {
