@@ -22,11 +22,99 @@ pub enum Support {
 }
 
 /// Enum that represents whether a project is a Mod or Modpack
-#[derive(Debug, Deserialize)]
+#[derive(PartialEq, Eq, Default, Debug, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ProjectType {
+    #[default]
+    #[serde(skip)]
+    None,
     Mod,
     Modpack
+}
+
+impl ProjectType {
+    /// method to get the string representation of a ProjectType
+    pub fn to_str(&self) -> &str {
+        match self {
+            ProjectType::Mod => "mod",
+            ProjectType::Modpack => "modpack",
+            ProjectType::None => ""
+        }
+    }
+}
+
+impl From<&str> for ProjectType {
+    fn from(s: &str) -> Self {
+        match s {
+            "mod" => ProjectType::Mod,
+            "modpack" => ProjectType::Modpack,
+            _ => ProjectType::None
+        }
+    }
+}
+
+/// Category Enum for the different Categories Modrinth 
+/// will filter mods through
+#[derive(Default)]
+pub enum Category {
+    #[default]
+    None,
+    Adventure,
+    Cursed,
+    Decoration,
+    Equipment,
+    Food,
+    Library,
+    Magic,
+    Misc,
+    Optimization,
+    Storage,
+    Technology,
+    Utility,
+    Worldgen,
+}
+
+impl Category {
+    /// method to get the string representation of a Category
+    pub fn to_str(&self) -> &str {
+        match self {
+            Category::Adventure => "adventure",
+            Category::Cursed => "cursed",
+            Category::Decoration => "decoration",
+            Category::Equipment => "equipment",
+            Category::Food => "food",
+            Category::Library => "library",
+            Category::Magic => "magic",
+            Category::Misc => "misc",
+            Category::Optimization => "optimization",
+            Category::Storage => "storage",
+            Category::Technology => "technology",
+            Category::Utility => "utility",
+            Category::Worldgen => "worldgen",
+            Category::None => ""
+        }
+    }
+}
+
+impl From<&str> for Category {
+    fn from(s: &str) -> Self {
+        match s {
+            "adventure" => Category::Adventure,
+            "cursed" => Category::Cursed,
+            "decoration" => Category::Decoration, 
+            "equipment" => Category::Equipment, 
+            "food" => Category::Food,
+            "library" => Category::Library,
+            "magic" => Category::Magic,
+            "misc" => Category::Misc,
+            "optimization" => Category::Optimization,
+            "storage" => Category::Storage,
+            "technology" => Category::Technology,
+            "utility" => Category::Utility,
+            "worldgen" => Category::Worldgen,
+            _ => Category::None
+        }
+    }
 }
 
 // Enum that represents the project's status on modrinth

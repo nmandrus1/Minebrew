@@ -22,7 +22,7 @@ pub struct Search <'a> {
 
 impl <'a> Search <'a> {
     /// Construct a search to make on the modrinth database
-    pub fn new(queries: &[&str], version: &'a str) -> Self {
+    pub fn new(queries: &'a[&'a str], version: &'a str) -> Self {
         Self {
             queries,
             limit: 5,
@@ -34,7 +34,7 @@ impl <'a> Search <'a> {
     /// Returns an iterator over the urls each of which is a search 
     /// on the modrinth database
     pub fn urls(&self) -> impl Iterator<Item=(String, &str)> + '_ {
-        self.queries.into_iter().map(|q| {
+        self.queries.iter().map(|q| {
             (format!(
                 "https://api.modrinth.com/v2/search?query={}&limit={}&index={}&facets=[[\"versions:{}\"]]",
                 q, self.limit, self.index, self.version), *q)

@@ -1,67 +1,51 @@
-use reqwest::{Client, Response};
 use std::fmt::Write;
+use std::convert::From;
+
+use reqwest::{Client, Response};
+
+use super::shared::{ProjectType, Category};
 
 const BASE_REQUEST: &str = "https://api.modrinth.com/v2/";
 
+/// Trait for any struct that can be turned into an API Request
 trait ToRequest {
+    /// Outputs a string that represents an API request
     fn to_req(&self) -> String;
 }
 
 /// A Struct to represent the facets query parameter for the Modrinth search API
-struct Facets {
-    categories: Option<Vec<String>>,
-    versions: Option<Vec<String>>,
-    project_type: Option<String>,
-    license: Option<String>,
+#[derive(Default)]
+struct Facets<'a> {
+    categories: Vec<Category>,
+    versions: Vec<&'a str>,
+    project_type: ProjectType,
+    license: String,
 }
 
-impl Facets {
-    /// Appends passed string to categories vec if it exists otherwise 
-    /// creates a vector with the passed string as the first entry
-    fn category(&mut self, category: String) {
-        if let Some(c) = self.categories.as_mut() { c.push(category) }
-        else { self.categories = Some(vec![category]) }
-    }
-
-    /// Appends passed string to versions vec if it exists otherwise 
-    /// creates a vector with the passed string as the first entry
-    fn version(&mut self, version: String) {
-        if let Some(v) = self.versions.as_mut() { v.push(version) }
-        else { self.versions = Some(vec![version]) }
-    }
-    
-    /// Replaces self.project_type with passed string 
-    fn project_type(&mut self, p_type: String) {
-        self.project_type = Some(p_type);
-    }
-
-    /// Replaces self.license with passed string 
-    fn license(&mut self, license: String) {
-        self.license = Some(license);
-    }
-
+impl<'a> Facets<'a> {
+    /// Turns the Facet Struct into a query parameter for an API call
     fn to_query_param(&self) -> String {
-        let mut ret = String::from("facets=[");
+        let mut ret = String::from("&facets=[");
 
         // For every field in Self check if it exists and if it does append all 
         // the information into ret to complete the facets query parameter
 
-        if let Some(cats) = self.categories.as_ref() {
-            cats.iter()
-                .for_each(|c| write!(&mut ret, "[\"categories:{}\"],", c).unwrap());
+        self.categories.iter()
+            .for_each(|c| match c {
+                Category::None => {},
+                c => write!(&mut ret, "[\"categories:{}\"],", c.to_str()).unwrap()
+        });
+
+        self.versions.iter()
+            .for_each(|v| write!(&mut ret, "[versions:{}\"],", v).unwrap());
+
+        match &self.project_type {
+            ProjectType::None => {},
+            p => write!(&mut ret, "[\"project_type:{}\"],", p.to_str()).unwrap()
         }
 
-        if let Some(vers) = self.versions.as_ref() {
-            vers.iter()
-                .for_each(|v| write!(&mut ret, "[versions:{}\"],", v).unwrap());
-        }
-
-        if let Some(p) = self.project_type.as_ref() {
-            write!(&mut ret, "[\"project_type:{}\"],", p).unwrap()
-        }
-
-        if let Some(l) = self.license.as_ref() {
-            write!(&mut ret, "[\"license:{}\"],", l).unwrap()
+        if !self.license.is_empty() {
+            write!(&mut ret, "[\"license:{}\"],", &self.license).unwrap()
         }
 
         // if there's a lingering comma remove it
@@ -73,25 +57,122 @@ impl Facets {
 }
 
 struct EmptyReq;
-// https://api.modrinth.com/v2
 
-#[derive(Default)]
-struct Search {
-    query: String,
-    version: String,
-} 
-
-impl ToRequest for Search {
+impl ToRequest for EmptyReq {
     fn to_req(&self) -> String {
-        format!("{}/search?query={}&facets=[[\"versions:{}\"]]", 
-            BASE_REQUEST, self.query, self.version)
+        format!("{}", BASE_REQUEST)
     }
 }
 
-struct Project {}
-struct Version {}
+/// SearchReq struct that implements ToRequest
+struct SearchReq<'a> {
+    // each of these fields represents a query 
+    // parameter for the modrinth search API
+    query: &'a str,
+    limit: usize,
+    index: &'a str,
+    facets: Facets<'a>,
+} 
 
-struct Modrinth<ReqType> {
+impl<'a> SearchReq<'a> {
+    /// Takes a query and contructs a default search Struct
+    fn new(query: &'a str) -> Self {
+        Self {
+            query,
+            limit: 5,
+            index: "relevance",
+            facets: Facets::default(),
+        }
+    }
+}
+
+impl<'a> ToRequest for SearchReq<'a> {
+    fn to_req(&self) -> String {
+        // the "&" before facets is taken care of by to_query_param()
+        format!("{}/search?query={}{}", 
+            BASE_REQUEST, self.query, self.facets.to_query_param())
+    }
+}
+
+/// ProjectReq struct that implements ToRequest
+struct ProjectReq<'a> {
+    // slug: &'a str
+    id: &'a str,
+    // list versions
+    version: bool,
+    // revisit to make ID a strong type
+}
+
+impl<'a> ProjectReq<'a> {
+    /// Default creation of a Project API call
+    fn new(slug: &'a str) -> Self {
+        Self { id: slug, version: false }
+    }
+}
+
+impl<'a> ToRequest for ProjectReq<'a> {
+    fn to_req(&self) -> String {
+        match self.version {
+            true => format!("{}/project/{}/version", BASE_REQUEST, self.id),
+            false => format!("{}/project/{}", BASE_REQUEST, self.id)
+        }
+    }
+}
+
+struct VersionReq<'a> {
+    id: &'a str
+}
+
+impl<'a> VersionReq<'a> {
+    fn new(id: &'a str) -> Self {
+        Self{ id }
+    }
+}
+
+impl<'a> ToRequest for VersionReq<'a> {
+    fn to_req(&self) -> String {
+        format!("{}/version/{}", BASE_REQUEST, self.id)
+    }
+}
+
+/// The asynchronous interface to the Modrinth api
+///
+/// This type was designed in its use to be similar to creating an API call 
+/// by hand. To make a search API call you would first start with the base HTTPS link:
+/// `https://api.modrinth.com/v2/` and from there would build up your search with a query, index, 
+/// and any other valid search parameters to get this: 
+///
+/// `https://api.modrinth.com/v2/search?query=sodium&facets=[["versions:1.19"]]`
+///
+/// With this struct creating a search would look like this:
+///
+/// ```rust
+/// let modrinth = Modrinth::new();
+/// modrinth.search("sodium").get().await?
+/// ```
+///
+/// This mod is designed to not allow an invalid API call, this is done via the use 
+/// of Generics and impl blocks. Modrinth has a generic type `ReqType` that implements an internal 
+/// trait `ToRequest`. Methods to modify a Search API call are only available for Modrinth<SearchReq>. 
+/// This makes it a compiler error to add the wrong query parameter to an API call. 
+///
+/// # Example: 
+/// ```compile_fail
+/// let modrinth = Modrinth::new();
+/// // A project API call has no parameter involving versions 
+/// // and as a result this method call is a compile error
+/// modrinth.project().version("1.19");
+/// ```
+///
+/// **NOTE** You only need one instance of a Modrinth type use it properly
+///
+/// # Example:
+/// ```rust
+/// let modrinth = Modrinth::new();
+/// modrinth.search("sodium").get().await?
+/// modrinth.search("fabric-api").version("1.19").get().await?
+/// ```
+pub struct Modrinth<ReqType> {
     // Client that makes HTTP requests
     client: Client,
 
@@ -100,6 +181,13 @@ struct Modrinth<ReqType> {
 }
 
 impl Modrinth<EmptyReq> {
+    /// Creates a new Modrinth instance with an empty Request, calling `get()` on this 
+    /// type is possible but is not reccommended because it is useless
+    ///
+    /// # Example:
+    /// ```rust
+    /// let modrinth = Modrinth::new() // new modrinth instance
+    /// ```
     pub fn new() -> Self {
         Self {
             client: Client::default(),
@@ -107,23 +195,118 @@ impl Modrinth<EmptyReq> {
         }
     }
 
-    pub fn search(&self, search: Search) -> Modrinth<Search> {
-        Modrinth { 
+    /// Cheaply creates a Modrinth<SearchReq> instance 
+    /// and takes a query as a required parameter
+    ///
+    /// # Example:
+    ///
+    /// ```rust
+    /// let modrinth = Modrinth::new() // new modrinth instance
+    /// // Creates a Modrinth<SearchReq> to begin building an API call
+    /// let search = modrinth.search("sodium"); 
+    /// ```
+    pub fn search<'a>(&self, query: &'a str) -> Modrinth<SearchReq<'a>> {
+        Modrinth {
             client: self.client.clone(),
-            req_type: search, 
+            req_type: SearchReq::new(query),
+        }
+    }
+
+    /// Cheaply creates a Modrinth<ProjectReq> instance and 
+    /// takes a slug or id as a required parameter
+    ///
+    ///
+    /// # Example:
+    /// ```rust
+    /// let modrinth = Modrinth::new() // new modrinth instance
+    /// // Creates a Modrinth<ProjectReq> to begin building an API call
+    /// let project =  modrinth.project("sodium") 
+    /// ```
+    ///
+    /// **NOTE** Slugs can change but a project's id is constant
+    pub fn project<'a>(&self, id: &'a str) -> Modrinth<ProjectReq<'a>> {
+        Modrinth {
+            client: self.client.clone(),
+            req_type: ProjectReq::new(id),
+        }
+    }
+    
+    /// Cheaply creates a Modrinth<VersionReq> instance and 
+    /// takes an id as a required parameter
+    ///
+    ///
+    /// # Example:
+    /// ```rust
+    /// let modrinth = Modrinth::new() // new modrinth instance
+    /// // Creates a Modrinth<VersionReq> to begin building an API call
+    /// let project =  modrinth.version("AABBCCDD") 
+    /// ```
+    ///
+    /// **NOTE** Slugs can change but a project's id is constant
+    pub fn version<'a>(&self, id: &'a str) -> Modrinth<VersionReq<'a>> {
+        Modrinth { 
+            client: self.client.clone(), 
+            req_type: VersionReq::new(id) 
         }
     }
 }
 
-impl Modrinth<Search> {
-    pub fn query(&mut self, query: String) {
-        self.req_type.query = query;
+impl<'a> Modrinth<SearchReq<'a>> {
+    /// Add a version to filter search results 
+    ///
+    /// # Example:
+    ///
+    /// ```rust
+    /// let modrinth = Modrinth::new()
+    ///
+    /// // Filters out mods that don't have 1.18 or 1.18.1 versions
+    /// modrinth.search("sodium").version("1.18").version(1.18.2).get();
+    /// ```
+    /// 
+    /// Each call to `version()` adds its passed value to a `Facet` 
+    /// struct that holds all the data to construct a [facet](https://docs.modrinth.com/docs/tutorials/api_search/#facets) for the
+    /// api call.
+    pub fn version(&mut self, version: &'a str) -> &mut Self {
+        self.req_type.facets.versions.push(version);
+        self
+    }
+
+    /// Add an index to filter search results 
+    ///
+    /// # Example:
+    /// ```rust
+    /// let modrinth = Modrinth::new()
+    ///
+    /// // Filters out mods based on the index
+    /// modrinth.search("sodium").index("downloads").get();
+    /// ```
+    /// 
+    /// Each call to `index()` overwrites whatever value is already 
+    /// there, "relevance" is the default index
+    pub fn index(&mut self, index: &'a str) -> &mut Self {
+        self.req_type.index = index;
+        self
     }
 }
 
-/// For any type that implements the ToRequest trait (a trait that turns data into a valid API call)
-// return the Future for processing elsewhere
+impl <'a> Modrinth<ProjectReq<'a>> {
+    /// A simple flag to list the projects versions
+    ///
+    /// # Example:
+    /// ```rust
+    /// let modrinth = Modrinth::new()
+    ///
+    /// // the returned JSON will have an array of all the project's versions
+    /// modrinth.project("sodium").list_versions(true).get();
+    /// ```
+    pub fn list_versions(&mut self, yes: bool) -> &mut Self {
+        self.req_type.version = yes;
+        self
+    }
+}
+
 impl<R: ToRequest> Modrinth<R> {
+    /// sends a request to the Modrinth API and returns a Future to be awaited
     pub async fn get(&mut self) -> impl futures::Future<Output=reqwest::Result<Response>> {
         self.client.get(self.req_type.to_req()).send()
     }
@@ -136,7 +319,7 @@ mod tests {
     #[test]
     fn it_works() {
         let modrinth = Modrinth::new();
-        modrinth.search(Search { query: "sodium".into(), version: "1.19".into() }).get();
-        modrinth.search(Search { query: "fabric-api".into(), version: "1.19".into() }).get();
-    }
+        modrinth.search("sodium").version("1.19").index("relevance").get();
+
+   }
 }
