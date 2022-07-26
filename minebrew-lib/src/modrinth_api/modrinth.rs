@@ -1,4 +1,4 @@
-use std::fmt::{Write, write};
+use std::fmt::Write;
 use std::convert::From;
 
 use reqwest::{Client, Response};
@@ -36,7 +36,7 @@ impl<'a> Facets<'a> {
         });
 
         self.versions.iter()
-            .for_each(|v| write!(&mut ret, "[versions:{}\"],", v).unwrap());
+            .for_each(|v| write!(&mut ret, "[\"versions:{}\"],", v).unwrap());
 
         match &self.project_type {
             ProjectType::None => {},
@@ -60,7 +60,7 @@ impl<'a> Facets<'a> {
     }
 }
 
-struct EmptyReq;
+pub struct EmptyReq;
 
 impl ToRequest for EmptyReq {
     fn to_req(&self) -> String {
@@ -68,8 +68,14 @@ impl ToRequest for EmptyReq {
     }
 }
 
+impl ToRequest for &EmptyReq {
+    fn to_req(&self) -> String {
+        BASE_REQUEST.to_string()
+    }
+}
+
 /// SearchReq struct that implements ToRequest
-struct SearchReq<'a> {
+pub struct SearchReq<'a> {
     // each of these fields represents a query 
     // parameter for the modrinth search API
     query: &'a str,
@@ -99,7 +105,7 @@ impl<'a> ToRequest for SearchReq<'a> {
 }
 
 /// ProjectReq struct that implements ToRequest
-struct ProjectReq<'a> {
+pub struct ProjectReq<'a> {
     // slug: &'a str
     id: &'a str,
 }
@@ -117,7 +123,7 @@ impl<'a> ToRequest for ProjectReq<'a> {
     }
 }
 
-struct ListVersionReq<'a> {
+pub struct ListVersionReq<'a> {
     id: &'a str,
     loaders: Option<Vec<&'a str>>,
     game_versions: Option<Vec<&'a str>>,
@@ -169,7 +175,7 @@ impl<'a> ToRequest for ListVersionReq<'a> {
     }
 }
 
-struct VersionReq<'a> {
+pub struct VersionReq<'a> {
     id: &'a str
 }
 
@@ -197,8 +203,10 @@ impl<'a> ToRequest for VersionReq<'a> {
 /// With this struct creating a search would look like this:
 ///
 /// ```rust
+/// use minebrew_lib::modrinth_api::Modrinth;
+///
 /// let modrinth = Modrinth::new();
-/// modrinth.search("sodium").get().await?
+/// modrinth.search("sodium").get(); // returns a future to be awaited
 /// ```
 ///
 /// This mod is designed to not allow an invalid API call, this is done via the use 
@@ -208,6 +216,8 @@ impl<'a> ToRequest for VersionReq<'a> {
 ///
 /// # Example: 
 /// ```compile_fail
+/// use minebrew_lib::modrinth_api::Modrinth;
+///
 /// let modrinth = Modrinth::new();
 /// // A project API call has no parameter involving versions 
 /// // and as a result this method call is a compile error
@@ -218,9 +228,11 @@ impl<'a> ToRequest for VersionReq<'a> {
 ///
 /// # Example:
 /// ```rust
+/// use minebrew_lib::modrinth_api::Modrinth;
+///
 /// let modrinth = Modrinth::new();
-/// modrinth.search("sodium").get().await?
-/// modrinth.search("fabric-api").version("1.19").get().await?
+/// modrinth.search("sodium").get();
+/// modrinth.search("fabric-api").version("1.19").get();
 /// ```
 pub struct Modrinth<ReqType> {
     // Client that makes HTTP requests
@@ -236,7 +248,9 @@ impl Modrinth<EmptyReq> {
     ///
     /// # Example:
     /// ```rust
-    /// let modrinth = Modrinth::new() // new modrinth instance
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new(); // new modrinth instance
     /// ```
     pub fn new() -> Self {
         Self {
@@ -253,7 +267,9 @@ impl Modrinth<EmptyReq> {
     /// # Example:
     ///
     /// ```rust
-    /// let modrinth = Modrinth::new() // new modrinth instance
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new(); // new modrinth instance
     /// // Creates a Modrinth<SearchReq> to begin building an API call
     /// let search = modrinth.search("sodium"); 
     /// ```
@@ -270,9 +286,11 @@ impl Modrinth<EmptyReq> {
     ///
     /// # Example:
     /// ```rust
-    /// let modrinth = Modrinth::new() // new modrinth instance
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new(); // new modrinth instance
     /// // Creates a Modrinth<ProjectReq> to begin building an API call
-    /// let project =  modrinth.project("sodium") 
+    /// let project =  modrinth.project("sodium");
     /// ```
     ///
     /// **NOTE** Slugs can change but a project's id is constant
@@ -289,9 +307,11 @@ impl Modrinth<EmptyReq> {
     ///
     /// # Example:
     /// ```rust
-    /// let modrinth = Modrinth::new() // new modrinth instance
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new(); // new modrinth instance
     /// // Creates a Modrinth<VersionReq> to begin building an API call
-    /// let project =  modrinth.version("AABBCCDD") 
+    /// let project =  modrinth.version("AABBCCDD");
     /// ```
     ///
     /// **NOTE** Slugs can change but a project's id is constant
@@ -309,16 +329,18 @@ impl<'a> Modrinth<SearchReq<'a>> {
     /// # Example:
     ///
     /// ```rust
-    /// let modrinth = Modrinth::new()
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new();
     ///
     /// // Filters out mods that don't have 1.18 or 1.18.1 versions
-    /// modrinth.search("sodium").version("1.18").version(1.18.2).get();
+    /// modrinth.search("sodium").version("1.18").version("1.18.2").get();
     /// ```
     /// 
     /// Each call to `version()` adds its passed value to a `Facet` 
     /// struct that holds all the data to construct a [facet](https://docs.modrinth.com/docs/tutorials/api_search/#facets) for the
     /// api call.
-    pub fn version(&mut self, version: &'a str) -> &mut Self {
+    pub fn version(mut self, version: &'a str) -> Self {
         self.req_type.facets.versions.push(version);
         self
     }
@@ -327,7 +349,9 @@ impl<'a> Modrinth<SearchReq<'a>> {
     ///
     /// # Example:
     /// ```rust
-    /// let modrinth = Modrinth::new()
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new();
     ///
     /// // Filters out mods based on the index
     /// modrinth.search("sodium").index("downloads").get();
@@ -335,7 +359,7 @@ impl<'a> Modrinth<SearchReq<'a>> {
     /// 
     /// Each call to `index()` overwrites whatever value is already 
     /// there, "relevance" is the default index
-    pub fn index(&mut self, index: &'a str) -> &mut Self {
+    pub fn index(mut self, index: &'a str) -> Self {
         self.req_type.index = index;
         self
     }
@@ -347,7 +371,9 @@ impl <'a> Modrinth<ProjectReq<'a>> {
     ///
     /// # Example:
     /// ```rust
-    /// let modrinth = Modrinth::new()
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new();
     ///
     /// // the returned JSON will have an array of all the project's versions
     /// modrinth.project("sodium").list_versions().get();
@@ -365,12 +391,14 @@ impl <'a> Modrinth<ListVersionReq<'a>> {
     ///
     /// # Example:
     /// ```rust
-    /// let modrinth = Modrinth::new()
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new();
     ///
     /// // the returned JSON will have an array of all the project's versions
     /// modrinth.project("sodium").list_versions().loader("fabric").get();
     /// ```
-    pub fn loader(&mut self, loader: &'a str) -> &mut Self {
+    pub fn loader(mut self, loader: &'a str) -> Self {
         // add loader to loaders or create first entry if there weren't any before
         if let Some(loaders) = &mut self.req_type.loaders {
             loaders.push(loader);
@@ -385,12 +413,14 @@ impl <'a> Modrinth<ListVersionReq<'a>> {
     ///
     /// # Example:
     /// ```rust
-    /// let modrinth = Modrinth::new()
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new();
     ///
     /// // the returned JSON will have an array of all the project's versions
     /// modrinth.project("sodium").list_versions().game_version("1.19").get();
     /// ```
-    pub fn game_version(&mut self, version: &'a str) -> &mut Self {
+    pub fn game_version(mut self, version: &'a str) -> Self {
         // add version to game_versions or create first entry if there weren't any before
         if let Some(versions) = &mut self.req_type.game_versions {
             versions.push(version);
@@ -406,12 +436,14 @@ impl <'a> Modrinth<ListVersionReq<'a>> {
     ///
     /// # Example:
     /// ```rust
-    /// let modrinth = Modrinth::new()
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new();
     ///
     /// // the returned JSON will have an array of all the project's versions
     /// modrinth.project("sodium").list_versions().featured(true).get();
     /// ```
-    pub fn featured(&mut self, yes: bool) -> &mut Self {
+    pub fn featured(mut self, yes: bool) -> Self {
         self.req_type.featured = true;
         self
     }
@@ -426,7 +458,10 @@ impl<R: ToRequest> Modrinth<R> {
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Index;
+
     use super::*;
+    use super::ToRequest;
 
     use httpmock::prelude::*;
 
@@ -470,25 +505,49 @@ mod tests {
         check(Modrinth::new().req_type, expected.into());
     }
 
+    #[test]
     fn basic_search() {
         let expected = "https://api.modrinth.com/v2/search?query=sodium&limit=5&index=relevance";
-        let search_req = Modrinth::new().search("sodium").req_type;
-        check(search_req, expected.into());
+        let api_call = Modrinth::new().search("sodium").req_type;
+        check(api_call, expected.into());
     }
 
     #[test]
-    fn to_req_test() {
-        let modrinth = Modrinth::new();
+    fn index_search() {
+        let expected = "https://api.modrinth.com/v2/search?query=sodium&limit=5&index=downloads";
+        let api_call = Modrinth::new().search("sodium").index("downloads").req_type;
+        check(api_call, expected.into());
+    }
 
-        // searches
-        let search_basic = modrinth.search("sodium").req_type.to_req();
-        let search_index = modrinth.search("sodium").index("downloads").req_type.to_req();
-        let search_facet = modrinth.search("sodium").version("1.19").req_type.to_req();
-        
-        // projects
-        let project_basic = modrinth.project("sodium").req_type.to_req();
-        let project_list_versions = modrinth.project("sodium").list_versions().req_type.to_req();
-        let project_list_versions_parameters = 
-            modrinth.project("sodium").list_versions().game_version("1.19").featured(true).req_type.to_req();
+    #[test]
+    fn facet_search() {
+        let expected = "https://api.modrinth.com/v2/search?query=sodium&limit=5&index=relevance&facets=[[\"versions:1.19\"]]";
+        let api_call = Modrinth::new().search("sodium").version("1.19").req_type;
+        check(api_call, expected.into());
+    }
+
+    #[test]
+    fn basic_project() {
+        let expected = "https://api.modrinth.com/v2/project/sodium";
+        let api_call = Modrinth::new().project("sodium").req_type;
+        check(api_call, expected.into());
+    }
+
+    #[test]
+    fn project_list_versions() {
+        let expected = "https://api.modrinth.com/v2/project/sodium/version";
+        let api_call = Modrinth::new().project("sodium").list_versions().req_type;
+        check(api_call, expected.into());
+    }
+
+    #[test]
+    fn project_list_versions_parameters() {
+        let expected = "https://api.modrinth.com/v2/project/sodium/version?game_versions=[\"1.19\"]&featured=true";
+        let api_call = Modrinth::new()
+            .project("sodium")
+            .list_versions()
+            .game_version("1.19")
+            .featured(true).req_type;
+        check(api_call, expected.into());
     }
 }

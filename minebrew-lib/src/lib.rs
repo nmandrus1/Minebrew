@@ -5,3 +5,5 @@ pub mod search;
 pub mod minebrew;
 pub mod version;
 pub mod shared;
+
+use modrinth_api::Modrinth;
