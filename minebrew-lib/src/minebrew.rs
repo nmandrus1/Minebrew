@@ -73,7 +73,7 @@ impl Minebrew {
             }
         });
 
-        if Minebrew::user_in("Begin Installation? [y/n]", &["Y", "y", ""]) {
+        if !Minebrew::user_in("Begin Installation? [y/n]", &["Y", "y", ""]) {
             std::process::exit(1);
         }
     }
@@ -88,7 +88,7 @@ impl Minebrew {
         let mut input = String::with_capacity(3);
         std::io::stdin().read_line(&mut input).unwrap();
 
-        expected.iter().any(|e| e == &input)
+        expected.iter().any(|e| e == &input.trim())
     }
 
     // pub async fn files_from_results(&self, results: &[SearchResult], version: &str) -> Vec<ModFile> {
@@ -112,7 +112,7 @@ impl Minebrew {
 
         stream::iter(self.download_queue.iter())
             .for_each_concurrent(self.download_queue.len(), |v| async move {
-                v.download_to(download_dir).await.unwrap();
+                v.download_to(download_dir, &self.modrinth.client).await.unwrap();
                 finished += 1;
                 print!("\x1B[2K\x1B[60DDownloaded\t[{}/{}]", finished, total);
                 std::io::stdout().flush().unwrap();

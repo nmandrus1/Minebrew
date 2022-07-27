@@ -77,8 +77,10 @@ async fn install(mut opts: Options) -> Result<(), Error> {
     println!("Not found, creating mods folder...");
         std::fs::create_dir_all(&mods_folder)?;
     } else {
-        println!("Mods folder found...")
+        println!("Mods folder found...");
     }
+
+    mbrew.confirm_queue();
 
     // download all the files we've gathered
     mbrew.download_files(&mods_folder).await?;

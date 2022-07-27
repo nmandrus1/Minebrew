@@ -236,7 +236,7 @@ impl<'a> ToRequest for VersionReq<'a> {
 /// ```
 pub struct Modrinth<ReqType> {
     // Client that makes HTTP requests
-    client: Client,
+    pub client: Client,
 
     // The generic that determines what methods are available to the caller
     req_type: ReqType,

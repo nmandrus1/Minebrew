@@ -107,7 +107,7 @@ impl Version {
     /// retrieves the file of interest
     #[inline]
     pub fn file(&self) -> &ModFile {
-        self.files.iter().find(|f| f.primary).unwrap()
+        self.files.iter().find(|f| f.primary).unwrap_or(&self.files[0])
     }
     
     pub async fn search(slug: &str, version: &str) -> Result<Vec<Version>, reqwest::Error> { 
@@ -130,13 +130,13 @@ impl Version {
     }
 
     /// Convience function to download a version to a specific path
-    pub async fn download_to(&self, path: &Path) -> anyhow::Result<()> {
+    pub async fn download_to(&self, path: &Path, client: &reqwest::Client) -> anyhow::Result<()> {
         // TODO: Find a way to use a reqwest::Client here
-        let file = &self.files.iter().find(|f| f.primary).unwrap();
+        let file = &self.file();
 
         let (url, filename) = (&file.url, &file.filename);
 
-        let res = reqwest::get(url).await?;
+        let res = client.get(url).send().await?;
         std::fs::write(path.join(filename), res.bytes().await?)?;
         Ok(())
     }
