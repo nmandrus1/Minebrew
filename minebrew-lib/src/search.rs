@@ -42,9 +42,9 @@ impl <'a> Search <'a> {
     }
 }
 
-/// Struct that represents the JOSN Response from a search 
+/// Struct that represents the hits from a search API call
 #[derive(Deserialize)]
-pub struct SearchResponse<'a> {
+pub struct SearchResponse {
     pub hits: Vec<SearchResult>,
 
     #[serde(skip)]
@@ -60,36 +60,33 @@ pub struct SearchResponse<'a> {
     _total_hits: u8,
 
     #[serde(skip)]
-    query: Option<&'a str>
+    query: String 
 }
 
-impl <'a> SearchResponse <'a> {
+impl SearchResponse {
     /// Function to set the query that the SearchResponse was generated from
-    pub fn set_query(&mut self, query: &'a str) {
-        self.query = Some(query);
+    pub fn set_query(&mut self, query: String) {
+        self.query = query;
     }
 
     /// Function that takes a query and an lienence value and filters 
     /// out any search result that isnt withint a `lenience` levenshtein 
     /// distance
     pub fn filter(&mut self, lenience: usize) {
-        let query = self.query.unwrap();
         self.hits.retain(|res| {
-            levenshtein(query, &res.title) <= lenience 
-            || levenshtein(query, &res.slug) <= lenience 
+            levenshtein(&self.query, &res.title) <= lenience 
+            || levenshtein(&self.query, &res.slug) <= lenience 
         })
     }
 
     /// Function that narrows down the search results of a response 
     /// to a single one either through filtering or user input
-    pub fn pick_result(mut self) -> SearchResult {
-        let query = self.query.unwrap();
-
+    pub fn pick_result(&mut self) -> &SearchResult {
         if self.hits.is_empty() {
-            eprintln!("error: {} not found", query);
+            eprintln!("error: {} not found", &self.query);
             std::process::exit(1);
         } else if self.hits.len() == 1 {
-            self.hits.swap_remove(0)
+            &self.hits[0]
         } else {
             // Numbered list of results
             self.hits.iter().enumerate()
@@ -118,7 +115,7 @@ impl <'a> SearchResponse <'a> {
                 };
             };
 
-            self.hits.swap_remove(choice-1)
+            &self.hits[choice-1]
         }
     }
 }
@@ -187,9 +184,8 @@ pub struct SearchResult {
     #[serde(rename = "icon_url")]
     _icon_url: Option<String>,
 
-    #[serde(skip)]
     #[serde(rename = "project_id")]
-    _project_id: String,
+    pub project_id: String,
 
     #[serde(skip)]
     #[serde(rename = "author")]

@@ -443,7 +443,7 @@ impl <'a> Modrinth<ListVersionReq<'a>> {
     /// // the returned JSON will have an array of all the project's versions
     /// modrinth.project("sodium").list_versions().featured(true).get();
     /// ```
-    pub fn featured(mut self, yes: bool) -> Self {
+    pub fn featured(mut self, _: bool) -> Self {
         self.req_type.featured = true;
         self
     }
@@ -451,19 +451,15 @@ impl <'a> Modrinth<ListVersionReq<'a>> {
 
 impl<R: ToRequest> Modrinth<R> {
     /// sends a request to the Modrinth API and returns a Future to be awaited
-    pub async fn get(&mut self) -> impl futures::Future<Output=reqwest::Result<Response>> {
+    pub fn get(&mut self) -> impl futures::Future<Output=reqwest::Result<Response>> {
         self.client.get(self.req_type.to_req()).send()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Index;
-
     use super::*;
     use super::ToRequest;
-
-    use httpmock::prelude::*;
 
     const EMPTY_REQ_RESPONSE: &str = r#"{"about":"Welcome traveler!","documentation":"https://docs.modrinth.com","name":"modrinth-labrinth","version":"2.4.4"}"#;
 
@@ -483,20 +479,6 @@ mod tests {
     fn check<R: ToRequest>(req_type: R, expected: String) {
         let actual = req_type.to_req();
         assert_eq!(actual, expected)
-    }
-
-    #[test]
-    fn test_empty_req_resp() {
-        let server = MockServer::start();
-        let m = server.mock(|when, then| {
-            when.method(GET)
-                .path("");
-            then.status(201)
-                .header("content-type", "application/json")
-                .json_body(EMPTY_REQ_RESPONSE);
-        });
-
-        let modrinth = Modrinth::new();
     }
 
     #[test]

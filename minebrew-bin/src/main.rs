@@ -1,71 +1,72 @@
-use std::{io::Write, fs::OpenOptions};
+use futures::stream::{self, StreamExt};
 
-use minebrew_lib::modrinth::{ Minebrew, Search, SearchResult };
+use minebrew_lib::{ Minebrew, SearchResponse };
 use minebrew_cfg::{ Options, Subcommands };
 
+type Error = Box<dyn std::error::Error>;
+
 #[tokio::main]
-async fn main() {
-    // -------- LOAD CONFIG -------- 
+async fn main() -> Result<(), Error> { 
+   // -------- LOAD CONFIG -------- 
     let opts = Options::parse();
 
     match opts.command {
         Subcommands::Install(_) => install(opts),
         _ => todo!(),
-    }.await
+    }.await?;
+
+    Ok(())
 }
 
-async fn install(mut opts: Options) {
-    let mbrew = Minebrew::default();
+// search for mods 
+//   - Make API calls
+//
+// filter results
+//   - Filter out results that have
+//     too high a levenshtein dist.
+//   - If more than 1 option remains
+//     get user input
+//
+// find the correct verion to install
+//   - Get a list of all the 
+//   versions of the mod
+//   - Pick the most recent version that 
+//     is acceptable to user
+//
+// download file
+async fn install(mut opts: Options) -> Result<(), Error> {
     // unwraping is okay here because we should never not 
     // pass any other Subcommand variant other than Install
     let i_opts = opts.command.install_opts().unwrap();
+    let num_queries = i_opts.queries.len();
+
+    let target = i_opts.target;
 
     // Loop through every query made 
     // Turns quries into ModFile structs which have a download link
-    let searches = Search::new(&i_opts.queries, &i_opts.target);
+    // let searches = Search::new(&i_opts.queries, &i_opts.target);
 
-    println!("Searching modrinth for {} mods", &i_opts.target);
+    let mut mbrew = Minebrew::default();
 
-    // Make requests and serialize them
-    let resps = mbrew.search(&searches).await;
+    println!("Searching modrinth for {} mods", &target);
 
-    // filter out and choose search results
-    let results: Vec<SearchResult> = resps.into_iter()
-        .map(|mut sr| { 
+    // Make API calls
+    let mut resps: Vec<SearchResponse> = stream::iter(i_opts.queries)
+        .map(|q| mbrew.search(q, &target))
+        .buffer_unordered(num_queries)
+        .collect().await;
+
+    // filter results
+    let results = resps.iter_mut()
+        .map(|sr| { 
             // filter out search results from each response
             sr.filter(2);
             sr.pick_result()
-        }).collect();
+        });
 
-    let files = mbrew.files_from_results(&results, &i_opts.target).await;
-
-    // List all the mods ready to be downloaded and ask
-    // the user to confirm
-    let mut chars_left: usize = 0;
-    println!("\nMods ({})", files.len());
-    files.iter().for_each(|f| {
-        match chars_left.checked_sub(&f.filename.len() + 2) {
-            Some(left) => {
-                print!("{}  ", f);
-                chars_left = left;
-            },
-            None => {
-                print!("\n\t{}  ", f);
-                chars_left = 80 - &f.filename.len();
-            },
-        }
-    });
-
-    print!("\n\nBegin Installation? [y/n]");
-    std::io::stdout().flush().unwrap(); // flush buffer to print everything
-
-    // get user input
-    let mut input = String::with_capacity(1);
-    std::io::stdin().read_line(&mut input).unwrap();
-    match input.trim().chars().nth(0) {
-        Some('y') | Some('Y') | None => {},
-        _ => std::process::exit(1),
-    };
+    // queue versions to download
+    // TEMPORARY until we can figure out how to do this better
+    mbrew.add_to_queue(results, &target).await?;
 
     // path to mods folder
     let mods_folder = i_opts.mc_dir.join("mods");
@@ -74,13 +75,14 @@ async fn install(mut opts: Options) {
     // if mods folder doesn't exist then make one
     if !mods_folder.exists() {
     println!("Not found, creating mods folder...");
-        std::fs::create_dir_all(&mods_folder).unwrap();
+        std::fs::create_dir_all(&mods_folder)?;
     } else {
         println!("Mods folder found...")
     }
 
     // download all the files we've gathered
-    mbrew.download_files(&files, &mods_folder).await;
+    mbrew.download_files(&mods_folder).await?;
 
     println!("\nSuccess!");
+    Ok(())
 }

@@ -3,4 +3,4 @@ mod traits;
 
 use super::shared;
 
-pub use modrinth::Modrinth;
+pub use modrinth::{ Modrinth, EmptyReq };

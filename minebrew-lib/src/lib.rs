@@ -6,4 +6,7 @@ pub mod minebrew;
 pub mod version;
 pub mod shared;
 
-use modrinth_api::Modrinth;
+use modrinth_api::{ Modrinth, EmptyReq };
+
+pub use minebrew::Minebrew;
+pub use search::{ SearchResponse, SearchResult };

@@ -1,26 +1,22 @@
 use std::fmt::Display;
+use std::path::Path;
 
 use serde::Deserialize;
 
 use super::shared::*;
 
 #[derive(Deserialize)]
-struct Dependency {
-    #[serde(skip)]
-    #[serde(rename = "version_id")]
-    _version_id: Option<String>,
+pub struct Dependency {
+    pub version_id: Option<String>,
 
-    #[serde(skip)]
-    #[serde(rename = "project_id")]
-    _project_id: Option<String>,
+    pub project_id: Option<String>,
 
-    #[serde(rename = "dependecy_type")]
-    _dependecy_type: DependencyType,
+    pub dependecy_type: DependencyType,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum VersionType {
+pub enum VersionType {
     Release,
     Beta,
     Alpha
@@ -53,9 +49,6 @@ pub struct Hashes {
     _sha1: String,
 }
 
-#[derive(Deserialize)]
-pub struct Versions (Vec<Version>);
-
 /// struct that represents a particular downloadable version of a mod
 #[derive(Deserialize)]
 pub struct Version {
@@ -69,30 +62,24 @@ pub struct Version {
     #[serde(rename = "changelog")]
     _changelog: Option<String>,
 
-    #[serde(skip)]
-    #[serde(rename = "dependencies")]
-    _dependencies: Option<Vec<Dependency>>,
+    pub dependencies: Option<Vec<Dependency>>,
 
     pub game_versions: Vec<String>,
 
-    #[serde(rename = "version_type")]
-    _version_type: VersionType,
+    pub version_type: VersionType,
 
     #[serde(skip)]
     #[serde(rename = "loaders")]
     _loaders: Vec<String>,
 
-    #[serde(skip)]
     #[serde(rename = "featured")]
-    _featured: bool,
+    pub featured: bool,
 
     #[serde(skip)]
     #[serde(rename = "id")]
     _id: String,
 
-    #[serde(skip)]
-    #[serde(rename = "project_id")]
-    _project_id: String,
+    pub project_id: String,
 
     #[serde(skip)]
     #[serde(rename = "author_id")]
@@ -112,11 +99,17 @@ pub struct Version {
 // Printing version struct now just means printing the name
 impl std::fmt::Display for Version {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.file().filename)
     }
 }
 
 impl Version {
+    /// retrieves the file of interest
+    #[inline]
+    pub fn file(&self) -> &ModFile {
+        self.files.iter().find(|f| f.primary).unwrap()
+    }
+    
     pub async fn search(slug: &str, version: &str) -> Result<Vec<Version>, reqwest::Error> { 
         let json_str = match reqwest::get(format!("https://api.modrinth.com/v2/project/{}/version?game_versions=[\"{}\"]", slug, version)).await {
             Err(e) => { // Handle ERROR case for GET request
@@ -136,8 +129,15 @@ impl Version {
         Ok(versions)
     }
 
-    pub async fn download_file(url: &str) -> Vec<u8> {
-        let res = reqwest::get(url).await.unwrap();
-        res.bytes().await.unwrap().to_vec()
+    /// Convience function to download a version to a specific path
+    pub async fn download_to(&self, path: &Path) -> anyhow::Result<()> {
+        // TODO: Find a way to use a reqwest::Client here
+        let file = &self.files.iter().find(|f| f.primary).unwrap();
+
+        let (url, filename) = (&file.url, &file.filename);
+
+        let res = reqwest::get(url).await?;
+        std::fs::write(path.join(filename), res.bytes().await?)?;
+        Ok(())
     }
 }
