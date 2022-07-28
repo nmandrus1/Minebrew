@@ -11,7 +11,7 @@ pub struct Dependency {
 
     pub project_id: Option<String>,
 
-    pub dependecy_type: DependencyType,
+    pub dependency_type: DependencyType,
 }
 
 #[derive(Deserialize)]
