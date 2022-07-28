@@ -110,13 +110,17 @@ impl Minebrew {
     pub async fn download_files(&self, download_dir: &Path) -> anyhow::Result<()> {
         let (mut finished, total) = (0, self.download_queue.len());
 
-        stream::iter(self.download_queue.iter())
-            .for_each_concurrent(self.download_queue.len(), |v| async move {
-                v.download_to(download_dir, &self.modrinth.client).await.unwrap();
-                finished += 1;
-                print!("\x1B[2K\x1B[60DDownloaded\t[{}/{}]", finished, total);
-                std::io::stdout().flush().unwrap();
-            }).await;
+        let mut downloads = stream::iter(self.download_queue.iter())
+            .map(|v| v.download_to(download_dir, &self.modrinth.client))
+            .buffer_unordered(self.download_queue.len());
+
+        // while let Some(_) = downloads.next().await {
+        while (downloads.next().await).is_some() {
+            finished += 1;
+            print!("\x1B[2K\x1B[60DDownloaded\t[{}/{}]", finished, total);
+            std::io::stdout().flush().unwrap();
+        }
+
         //
         // let mut total_bytes = 0_usize;
         // for file in files {
