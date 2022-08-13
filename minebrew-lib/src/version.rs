@@ -49,6 +49,39 @@ pub struct Hashes {
     _sha1: String,
 }
 
+/// struct that represents a list of Version structs, internally it is a just a wrapper
+/// over a Vec<Version>
+#[derive(Deserialize)]
+pub struct VersionList(Vec<Version>);
+
+impl From<Vec<Version>> for VersionList {
+    fn from(v: Vec<Version>) -> Self {
+       Self(v) 
+    }
+}
+
+impl VersionList {
+    /// length of the version list
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// append a version to the end of the List
+    pub fn push(&mut self, v: Version) {
+        self.0.push(v)
+    }
+
+    /// Remove a Version from the list
+    pub fn remove(&mut self, index: usize) -> Version {
+        self.0.remove(index)
+    }
+
+    /// Return an iterator over the VersionList
+    pub fn iter(&self) -> impl Iterator<Item=&Version> {
+        self.0.iter()
+    }
+}
+
 /// struct that represents a particular downloadable version of a mod
 #[derive(Deserialize)]
 pub struct Version {

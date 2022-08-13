@@ -4,47 +4,9 @@ use super::shared::*;
 
 use serde::Deserialize;
 
-/// A struct used to build a query and then run a search 
-/// for a query and then handle the result
-pub struct Search <'a> {
-    /// The string this will be the query
-    pub queries: &'a[&'a str],
-
-    /// limit the number of search results per query
-    pub limit: u8,
-
-    /// sorting method for search results
-    pub index: &'a str,
-
-    /// The version to filter minecraft searches by
-    pub version: &'a str,
-}
-
-impl <'a> Search <'a> {
-    /// Construct a search to make on the modrinth database
-    pub fn new(queries: &'a[&'a str], version: &'a str) -> Self {
-        Self {
-            queries,
-            limit: 5,
-            index: "relevance",
-            version, 
-        }
-    }
-
-    /// Returns an iterator over the urls each of which is a search 
-    /// on the modrinth database
-    pub fn urls(&self) -> impl Iterator<Item=(String, &str)> + '_ {
-        self.queries.iter().map(|q| {
-            (format!(
-                "https://api.modrinth.com/v2/search?query={}&limit={}&index={}&facets=[[\"versions:{}\"]]",
-                q, self.limit, self.index, self.version), *q)
-        })
-    }
-}
-
 /// Struct that represents the hits from a search API call
 #[derive(Deserialize)]
-pub struct SearchResponse {
+pub struct SearchResponse<'a> {
     pub hits: Vec<SearchResult>,
 
     #[serde(skip)]
@@ -60,12 +22,12 @@ pub struct SearchResponse {
     _total_hits: u8,
 
     #[serde(skip)]
-    query: String 
+    query: &'a str 
 }
 
-impl SearchResponse {
+impl<'a> SearchResponse<'a> {
     /// Function to set the query that the SearchResponse was generated from
-    pub fn set_query(&mut self, query: String) {
+    pub fn set_query(&mut self, query: &'a str) {
         self.query = query;
     }
 
@@ -74,8 +36,8 @@ impl SearchResponse {
     /// distance
     pub fn filter(&mut self, lenience: usize) {
         self.hits.retain(|res| {
-            levenshtein(&self.query, &res.title) <= lenience 
-            || levenshtein(&self.query, &res.slug) <= lenience 
+            levenshtein(self.query, &res.title) <= lenience 
+            || levenshtein(self.query, &res.slug) <= lenience 
         })
     }
 

@@ -55,7 +55,8 @@ impl From<&str> for ProjectType {
 
 /// Category Enum for the different Categories Modrinth 
 /// will filter mods through
-#[derive(Default)]
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Category {
     #[default]
     None,

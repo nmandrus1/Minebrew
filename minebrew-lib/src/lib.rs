@@ -2,11 +2,12 @@
 pub mod modrinth_api; // modrinth module has all the modrinth specific code
 
 pub mod search;
-pub mod minebrew;
+pub mod project;
 pub mod version;
 pub mod shared;
 
-use modrinth_api::{ Modrinth, EmptyReq };
+use project::Project;
 
-pub use minebrew::Minebrew;
 pub use search::{ SearchResponse, SearchResult };
+pub use version::{ Version, VersionList };
+pub use modrinth_api::{ Empty, Modrinth };

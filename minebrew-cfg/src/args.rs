@@ -26,8 +26,8 @@ fn arg_target<'a>() -> Arg<'a> {
 
 fn arg_mc_dir<'a>() -> Arg<'a> {
     Arg::new("mc_dir")
-        .short('m')
-        .long("mc_dir")
+        .short('d')
+        .long("directory")
         .help("Path to .minecraft (minecraft for MacOS) folder")
         .takes_value(true)
         .value_parser(clap::value_parser!(PathBuf))
