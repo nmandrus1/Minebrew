@@ -2,6 +2,7 @@
 
 members = [
   "minebrew-lib",
+  "minebrew-db",
   "minebrew-cfg",
   "minebrew-bin",
 ]

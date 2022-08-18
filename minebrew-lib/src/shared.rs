@@ -1,10 +1,10 @@
-use serde::Deserialize;
+use serde::{ Serialize, Deserialize };
 
 // This module contains enums and structs used in multiple 
 // other structs that are constructed through HTTP GET requests
 
 /// Enum that represents a mod's dependency requirement
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DependencyType {
     Required,

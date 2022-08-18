@@ -1,11 +1,11 @@
 use std::fmt::Display;
 use std::path::Path;
 
-use serde::Deserialize;
+use serde::{ Serialize, Deserialize };
 
 use super::shared::*;
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Dependency {
     pub version_id: Option<String>,
 
@@ -14,7 +14,7 @@ pub struct Dependency {
     pub dependency_type: DependencyType,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum VersionType {
     Release,
@@ -22,11 +22,9 @@ pub enum VersionType {
     Alpha
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ModFile {
-    #[serde(skip)]
-    #[serde(rename = "hashes")]
-    _hashes: Hashes,
+    hashes: Hashes,
 
     pub url: String,
 
@@ -43,15 +41,15 @@ impl Display for ModFile {
     }
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Hashes {
-    _sha512: String,
-    _sha1: String,
+    sha512: String,
+    sha1: String,
 }
 
 /// struct that represents a list of Version structs, internally it is a just a wrapper
 /// over a Vec<Version>
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct VersionList(Vec<Version>);
 
 impl From<Vec<Version>> for VersionList {
@@ -82,8 +80,17 @@ impl VersionList {
     }
 }
 
+impl IntoIterator for VersionList {
+    type Item = Version;
+    type IntoIter = std::vec::IntoIter<Version>;
+    
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 /// struct that represents a particular downloadable version of a mod
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Version {
     pub name: String,
 
@@ -129,6 +136,12 @@ pub struct Version {
     pub files: Vec<ModFile>,
 }
 
+impl PartialEq for Version {
+    fn eq(&self, other: &Self) -> bool {
+        self.sha1() == other.sha1()
+    }
+}
+
 // Printing version struct now just means printing the name
 impl std::fmt::Display for Version {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -141,6 +154,12 @@ impl Version {
     #[inline]
     pub fn file(&self) -> &ModFile {
         self.files.iter().find(|f| f.primary).unwrap_or(&self.files[0])
+    }
+
+    /// retrieves the sha1 hash for this version
+    #[inline]
+    pub fn sha1(&self) -> &str {
+        &self.file().hashes.sha1
     }
     
     pub async fn search(slug: &str, version: &str) -> Result<Vec<Version>, reqwest::Error> { 

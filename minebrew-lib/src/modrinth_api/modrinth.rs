@@ -367,9 +367,8 @@ impl<'a> Modrinth<SearchReq<'a>> {
         self
     }
 
-    pub async fn get(&mut self) -> anyhow::Result<SearchResponse<'a>> {
-        let mut sr: SearchResponse = self.make_request().await?.json().await?;
-        sr.set_query(self.req_type.query);
+    pub async fn get(&mut self) -> anyhow::Result<SearchResponse> {
+        let sr = self.make_request().await?.json().await?;
         Ok(sr)
     }
 }

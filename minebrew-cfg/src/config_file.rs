@@ -15,14 +15,14 @@ pub struct ConfigFile {
     pub target: Option<String>,
 
     #[serde(default = "default_mc_dir")]
-    pub mc_dir: Option<PathBuf>,
+    pub directory: Option<PathBuf>,
 }
 
 impl Default for ConfigFile {
     fn default() -> Self {
         Self { 
             target: default_target(),
-            mc_dir: default_mc_dir(),
+            directory: default_mc_dir(),
         } 
     }
 }

@@ -3,10 +3,38 @@
 mod args;
 mod config_file;
 
+pub use args::*;
 use config_file::ConfigFile;
-pub use args::{ Options, Subcommands };
 
 use std::path::PathBuf;
+
+pub struct Options {
+    pub queries: Vec<String>,
+    pub directory: PathBuf,
+    pub target: String,
+    pub cmd: Command,
+}
+
+impl Options {
+    pub fn load() -> Self {
+        let cfg_file = ConfigFile::load();
+        let cfg_file_defualt = ConfigFile::default();
+        let args = Args::parse();
+
+        match args.command {
+            Commands::Install(opts) => Self {
+                queries: opts.queries,
+                directory: opts.directory.or(cfg_file.directory).or(cfg_file_defualt.directory).unwrap(),
+                target: opts.target.or(cfg_file.target).or(cfg_file_defualt.target).unwrap(),
+                cmd: Command::Install,
+            },
+        }
+    }
+}
+
+pub enum Command {
+    Install
+}
 
 #[derive(Debug)]
 pub enum ConfigError {
@@ -29,7 +57,7 @@ impl std::fmt::Display for ConfigError {
 }
 
 /// Convience functino for ending the program with an error message
-pub fn exit_with_msg<'a, T: AsRef<str> + std::fmt::Display>(msg: T) -> ! {
+pub fn exit_with_msg<T: AsRef<str> + std::fmt::Display>(msg: T) -> ! {
     eprintln!("{msg}");
     std::process::exit(1);
 }
@@ -80,7 +108,7 @@ fn valid_target_string(s: &str) -> Result<(), ConfigError> {
 /// Finds the ".minecraft" folder and exits if 
 /// it could not find it.
 #[cfg(target_os = "windows")]
-fn get_mc_dir() -> PathBuf {
+pub fn get_mc_dir() -> PathBuf {
     // Should put us in C:\Users\USERNAME\AppData\Roaming
     match dirs::config_dir() {
         Some(config_dir) => config_dir.join(".minecraft"),
@@ -89,7 +117,7 @@ fn get_mc_dir() -> PathBuf {
 }
 
 #[cfg(target_os = "macos")]
-fn get_mc_dir() -> PathBuf {
+pub fn get_mc_dir() -> PathBuf {
     // should be $HOME/Library/Application Support/
     match dirs::config_dir() {
         Some(config_dir) => config_dir.join("minecraft"),
@@ -98,7 +126,7 @@ fn get_mc_dir() -> PathBuf {
 }
 
 #[cfg(target_os = "linux")]
-fn get_mc_dir() -> PathBuf {
+pub fn get_mc_dir() -> PathBuf {
     // should be in /home/USER/
     match dirs::home_dir() {
         Some(home_dir) => home_dir.join(".minecraft"),

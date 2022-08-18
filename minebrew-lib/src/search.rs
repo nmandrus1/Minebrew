@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 /// Struct that represents the hits from a search API call
 #[derive(Deserialize)]
-pub struct SearchResponse<'a> {
+pub struct SearchResponse {
     pub hits: Vec<SearchResult>,
 
     #[serde(skip)]
@@ -20,35 +20,27 @@ pub struct SearchResponse<'a> {
     #[serde(skip)]
     #[serde(rename = "total_hits")]
     _total_hits: u8,
-
-    #[serde(skip)]
-    query: &'a str 
 }
 
-impl<'a> SearchResponse<'a> {
-    /// Function to set the query that the SearchResponse was generated from
-    pub fn set_query(&mut self, query: &'a str) {
-        self.query = query;
-    }
-
+impl SearchResponse {
     /// Function that takes a query and an lienence value and filters 
     /// out any search result that isnt withint a `lenience` levenshtein 
     /// distance
-    pub fn filter(&mut self, lenience: usize) {
+    pub fn filter(&mut self, query: &str, lenience: usize) {
         self.hits.retain(|res| {
-            levenshtein(self.query, &res.title) <= lenience 
-            || levenshtein(self.query, &res.slug) <= lenience 
+            levenshtein(query, &res.title) <= lenience 
+            || levenshtein(query, &res.slug) <= lenience 
         })
     }
 
     /// Function that narrows down the search results of a response 
-    /// to a single one either through filtering or user input
-    pub fn pick_result(&mut self) -> &SearchResult {
+    /// to a single one either through filtering or user input, returns 
+    /// an Error if the query couldnt be found
+    pub fn pick_result(&mut self) -> anyhow::Result<&SearchResult> {
         if self.hits.is_empty() {
-            eprintln!("error: {} not found", &self.query);
-            std::process::exit(1);
+            anyhow::bail!(String::default())
         } else if self.hits.len() == 1 {
-            &self.hits[0]
+            Ok(&self.hits[0])
         } else {
             // Numbered list of results
             self.hits.iter().enumerate()
@@ -77,7 +69,7 @@ impl<'a> SearchResponse<'a> {
                 };
             };
 
-            &self.hits[choice-1]
+            Ok(&self.hits[choice-1])
         }
     }
 }

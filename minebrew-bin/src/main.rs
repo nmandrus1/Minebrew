@@ -1,9 +1,9 @@
 use futures::stream::{self, StreamExt};
-
 use anyhow::Error;
 
 use minebrew_lib::{ Modrinth, Empty, VersionList, SearchResponse, SearchResult };
-use minebrew_cfg::{ Options, Subcommands };
+use minebrew_cfg::{Command, Options};
+use minebrew_db::{ ModDB, DBError };
 
 use std::io::Write;
 use std::path::Path;
@@ -14,16 +14,34 @@ pub struct Minebrew {
     modrinth: Modrinth<Empty>,
     download_queue: VersionList,
     opts: Options,
-    //db goes here
+    db: ModDB,
 }
 
 /// Default init for Minebrew
 impl Default for Minebrew {
     fn default() -> Self {
+        let opts = Options::load();
+        
+        println!("Loading local database...");
+        let db = match ModDB::load(&opts.directory.join("minebrew.json")) {
+            Ok(db) => db,
+            Err(e) => match e {
+                DBError::IOError(e) => { eprintln!("Error: {e}"); std::process::exit(1) },
+                DBError::SerializationErr(e) => {
+                    eprintln!("Error: {e} \n\nWhoops! Minebrew encountered an error that is \
+                              100% the developers fault, please report this to the Minebrew \
+                              development team along with the exact options and queries used, \
+                              thank you!");
+                    std::process::exit(1);
+                }
+            }
+        };
+        
         Self {
             modrinth: Modrinth::new(),
             download_queue: Vec::with_capacity(5).into(),
-            opts: Options::parse(),
+            opts,
+            db
         }
     }
 }
@@ -33,27 +51,26 @@ impl Minebrew {
     /// Starts Minebrew
     pub async fn run() -> anyhow::Result<()> {
         let mut mbrew = Minebrew::default();
-        match mbrew.opts.command {
-            Subcommands::Install(_) => mbrew.install().await,
+        match mbrew.opts.cmd {
+            Command::Install => mbrew.install().await,
             _ => Ok(()) 
         }
     }
     
-    /// Take a reference to a search struct and return a 
-    /// Vec of Search Responses wrapped in a Result
-    async fn search<'a>(&self, query: &'a str, target: &'a str) -> SearchResponse<'a> {
-        let mut resp = self.modrinth.search(query).version(target);
+    /// takes a query and returns the Response and the corresponding query
+    async fn search<'a>(&self, query: &'a str) -> (SearchResponse, &'a str) {
+        let mut resp = self.modrinth.search(query).version(&self.opts.target);
         let sresp = resp.get().await;
         if let Err(e) = sresp {
             eprintln!("Error searching Modrinth: {}", e);
             std::process::exit(1);
         } else {
-            sresp.unwrap()
+            (sresp.unwrap(), query)
         }
     }
 
     /// given a project id and a version number add a compatible version to the download queue
-    async fn add_to_queue<'a>(&mut self, results: impl Iterator<Item=&SearchResult>, version: &'a str) -> anyhow::Result<()> {
+    async fn add_to_queue<'a>(&mut self, results: impl Iterator<Item=&SearchResult>) -> anyhow::Result<()> {
         let size = results.size_hint().1.unwrap();
         // iterate over the search results and generate an API request for a VersionList,
         // removing the first element and then pushing that to the download queue
@@ -61,7 +78,7 @@ impl Minebrew {
             let mut vlist = self.modrinth
                 .project(&r.project_id)
                 .list_versions()
-                .game_version(version)
+                .game_version(&self.opts.target)
                 .get().await.unwrap();
             vlist.remove(0)
         }).buffer_unordered(size);
@@ -111,21 +128,49 @@ impl Minebrew {
     }
 
     /// Downloads all the files in the download queue
-    async fn download_files(&self, download_dir: &Path) -> anyhow::Result<()> {
-        let (mut finished, total) = (0, self.download_queue.len());
+    async fn download_files(&mut self, download_dir: &Path) -> anyhow::Result<()> {
+        let num_downloads = self.download_queue.len();
+        let (mut finished, total) = (0, num_downloads);
 
-        let mut downloads = stream::iter(self.download_queue.iter())
-            .map(|v| v.download_to(download_dir, &self.modrinth.client))
-            .buffer_unordered(self.download_queue.len());
+        // DOWNLOAD QUEUE MOVED OUT OF SELF
+        let download_queue = std::mem::take(&mut self.download_queue);
+        
+        let mut downloads = stream::iter(download_queue.into_iter())
+            .map(|v| async {
+                v.download_to(download_dir, &self.modrinth.client).await.unwrap();
+                v
+            })
+            .buffer_unordered(num_downloads);
+            
+        while let Some(download) = downloads.next().await {
 
-        // while let Some(_) = downloads.next().await {
-        while (downloads.next().await).is_some() {
+            // update mod database or insert the new mod
+            self.db.entry(download.project_id.clone())
+                .or_insert_with_key(|_| download);
+            
             finished += 1;
             print!("\x1B[2K\x1B[60DDownloaded\t[{}/{}]", finished, total);
             std::io::stdout().flush().unwrap();
         }
 
-        Ok(())
+        // let dir = get_mc_dir().join("minebrew.json");
+        let mut dir = download_dir.to_path_buf();
+        dir.pop();
+        dir.push("minebrew.json");
+        
+        match self.db.save_to_file(&dir) {
+            Ok(_) => Ok(()),
+            Err(e) => match e {
+                DBError::IOError(e) => { eprintln!("Error: {e}"); std::process::exit(1) },
+                DBError::SerializationErr(e) => {
+                    eprintln!("Error: {e} \n\nWhoops! Minebrew encountered an error that is \
+                              100% the developers fault, please report this to the Minebrew \
+                              development team along with the exact options and queries used, \
+                              thank you!");
+                    std::process::exit(1);
+                }
+            }
+        }
     }
 
     // search for mods 
@@ -145,38 +190,41 @@ impl Minebrew {
     //
     // download file
     pub async fn install(&mut self) -> anyhow::Result<()> {
-        // unwraping is okay here because we should never not 
-        // pass any other Subcommand variant other than Install
-        let opts = self.opts.command.install_opts().unwrap();
-        let num_queries = opts.queries.len();
-        let target = opts.target;
+        let num_queries = self.opts.queries.len();
+        let queries = std::mem::take(&mut self.opts.queries);
 
         // Loop through every query made 
         // Turns quries into ModFile structs which have a download link
         // let searches = Search::new(&i_opts.queries, &i_opts.target);
 
-        println!("Searching modrinth for {} mods", &target);
+        println!("Searching modrinth for {} mods", &self.opts.target);
 
         // Make API calls
-        let mut resps: Vec<SearchResponse> = stream::iter(opts.queries.iter())
-            .map(|q| self.search(q, &target))
+        let mut resps: Vec<(SearchResponse, &str)> = stream::iter(queries.iter())
+            .map(|q| self.search(q))
             .buffer_unordered(num_queries)
             .collect().await;
 
         // filter results
         let results = resps.iter_mut()
-            .map(|sr| { 
+            .map(|(sr, q)| { 
                 // filter out search results from each response
-                sr.filter(2);
-                sr.pick_result()
-            });
+                sr.filter(q, 2);
+                match sr.pick_result() {
+                    Ok(s) => s,
+                    Err(_) => {
+                        eprintln!("Error: {} not found...", q);
+                        std::process::exit(1)
+                    }
+                }
+        });
 
         // queue versions to download
         // TEMPORARY until we can figure out how to do this better
-        self.add_to_queue(results, &target).await?;
+        self.add_to_queue(results).await?;
 
         // path to mods folder
-        let mods_folder = opts.mc_dir.join("mods");
+        let mods_folder = &self.opts.directory.join("mods");
 
         println!("\nSearching for mods folder...");
         // if mods folder doesn't exist then make one
@@ -190,7 +238,7 @@ impl Minebrew {
         self.confirm_queue();
 
         // download all the files we've gathered
-        self.download_files(&mods_folder).await?;
+        self.download_files(mods_folder).await?;
 
         println!("\nSuccess!");
         Ok(())
