@@ -139,7 +139,7 @@ pub struct Version {
 
     pub id: String,
 
-    pub project_id: String,
+    project_id: String,
 
     #[serde(skip)]
     #[serde(rename = "author_id")]
@@ -165,7 +165,7 @@ impl PartialEq for Version {
 // Printing version struct now just means printing the name
 impl std::fmt::Display for Version {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.file().filename)
+        write!(f, "{}", &self.file().filename)
     }
 }
 
