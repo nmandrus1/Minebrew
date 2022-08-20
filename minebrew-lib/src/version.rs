@@ -158,7 +158,7 @@ pub struct Version {
 
 impl PartialEq for Version {
     fn eq(&self, other: &Self) -> bool {
-        self.sha1() == other.sha1()
+        self.id == other.id
     }
 }
 
@@ -186,7 +186,7 @@ impl Version {
     }
 
     /// Convience function to download a version to a specific path
-    pub async fn download_to(&self, path: &Path, client: &reqwest::Client) -> anyhow::Result<()> {
+    pub async fn download_to(self, path: &Path, client: &reqwest::Client) -> anyhow::Result<Self> {
         // TODO: Find a way to use a reqwest::Client here
         let file = &self.file();
 
@@ -194,6 +194,6 @@ impl Version {
 
         let res = client.get(url).send().await?;
         std::fs::write(path.join(filename), res.bytes().await?)?;
-        Ok(())
+        Ok(self)
     }
 }

@@ -28,12 +28,19 @@ impl Options {
                 target: opts.target.or(cfg_file.target).or(cfg_file_defualt.target).unwrap(),
                 cmd: Command::Install,
             },
+            Commands::Update(opts) => Self {
+                queries: Vec::new(),
+                directory: opts.directory.or(cfg_file.directory).or(cfg_file_defualt.directory).unwrap(),
+                target: opts.target.or(cfg_file.target).or(cfg_file_defualt.target).unwrap(),
+                cmd: Command::Update,
+            },
         }
     }
 }
 
 pub enum Command {
-    Install
+    Install,
+    Update
 }
 
 #[derive(Debug)]

@@ -61,6 +61,16 @@ impl ModDB {
         self.db.entry(key)
     }
 
+    pub fn values(&self) -> std::collections::hash_map::Values<String, Version> {
+        self.db.values()
+    }
+    
+    #[inline]
+    pub fn len(&self) -> usize { self.db.len() }
+    
+    #[inline]
+    pub fn is_empty(&self) -> bool { self.db.is_empty() }
+
     /// replace a mod in the database with a new one if its being updated
     /// or insert a new mod into the database
     pub fn replace_or_insert(&mut self, new: Version) {

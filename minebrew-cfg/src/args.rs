@@ -20,7 +20,8 @@ impl Args {
 #[derive(FromArgs)]
 #[argh(subcommand)]
 pub enum Commands {
-    Install(InstallArgs)
+    Install(InstallArgs),
+    Update(UpdateArgs)
 }
 
 #[derive(FromArgs)]
@@ -38,6 +39,19 @@ pub struct InstallArgs {
     #[argh(positional)]
     /// one or more mods to install
     pub queries: Vec<String>, 
+}
+
+#[derive(FromArgs)]
+#[argh(subcommand, name = "update")]
+/// Install one or more mods
+pub struct UpdateArgs {
+    #[argh(option, short = 't', from_str_fn(parse_target))]
+    /// the target version of Minecraft
+    pub target: Option<String>, 
+    
+    #[argh(option, short = 'd')]
+    /// path to your .minecraft directory
+    pub directory: Option<PathBuf>, 
 }
 
 fn parse_target(value: &str) -> Result<String, String> {
