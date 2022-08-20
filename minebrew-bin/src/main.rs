@@ -254,7 +254,7 @@ impl Minebrew {
         // download all the files we've gathered
         self.download_files(mods_folder, download_queue).await?;
 
-        match self.db.save_to_file(&self.opts.directory.join("minebrew.json")) {
+        match self.db.save_to_file() {
             Ok(_) => { println!("Success!"); Ok(()) },
             Err(e) => match e {
                 DBError::IOError(e) =>  anyhow::bail!("{e}"),
