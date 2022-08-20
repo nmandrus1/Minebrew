@@ -128,13 +128,7 @@ impl Minebrew {
         while let Some(download) = downloads.next().await {
 
             // update mod database or insert the new mod
-            match self.db.get_mut(&download.project_id) {
-                Some(old_v) => {
-                    std::fs::remove_file(download_dir.join(old_v.file().file_name()));
-                    *old_v = download
-                },
-                None => { self.db.insert(download.project_id.clone(), download); }
-            }
+            self.db.replace_or_insert(download);
             
             finished += 1;
             print!("\x1B[2K\x1B[60DDownloaded\t[{}/{}]", finished, total);
@@ -228,7 +222,7 @@ impl Minebrew {
         // keep only those that need to be installed, 
         // ignoring mods that haven't been updated
         download_queue.retain(|v| {
-            let ret = match self.db.get(&v.project_id) {
+            let ret = match self.db.get(&v.pid()) {
                 Some(old_v) => old_v.id != v.id,
                 None => true
             }; 

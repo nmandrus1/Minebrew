@@ -176,6 +176,9 @@ impl Version {
         self.files.iter().find(|f| f.primary).unwrap_or(&self.files[0])
     }
 
+    /// the Project ID
+    pub fn pid(&self) -> &str { &self.project_id }
+
     /// retrieves the sha1 hash for this version
     #[inline]
     pub fn sha1(&self) -> &str {
