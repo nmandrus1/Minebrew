@@ -225,10 +225,13 @@ impl Minebrew {
         // keep only those that need to be installed, 
         // ignoring mods that haven't been updated
         download_queue.retain(|v| {
-            match self.db.get(&v.project_id) {
+            let ret = match self.db.get(&v.project_id) {
                 Some(old_v) => old_v.id != v.id,
                 None => true
-            }
+            }; 
+
+            if !ret {println!("{} is up to date...", &v.name)}
+            ret
         });
 
         // path to mods folder
