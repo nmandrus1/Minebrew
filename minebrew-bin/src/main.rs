@@ -1,7 +1,7 @@
 use futures::stream::{self, StreamExt};
 use anyhow::Error;
 
-use minebrew_lib::{ Modrinth, Empty, VersionList, SearchResponse, SearchResult };
+use minebrew_lib::{ Modrinth, Empty, VersionList, Version, SearchResponse, version::VersionType};
 use minebrew_cfg::{Command, Options};
 use minebrew_db::{ ModDB, DBError };
 
@@ -12,7 +12,6 @@ use std::path::Path;
 /// on currently installed packages
 pub struct Minebrew {
     modrinth: Modrinth<Empty>,
-    download_queue: VersionList,
     opts: Options,
     db: ModDB,
 }
@@ -39,7 +38,6 @@ impl Default for Minebrew {
         
         Self {
             modrinth: Modrinth::new(),
-            download_queue: Vec::with_capacity(5).into(),
             opts,
             db
         }
@@ -69,42 +67,30 @@ impl Minebrew {
         }
     }
 
-    /// given a project id and a version number add a compatible version to the download queue
-    async fn add_to_queue<'a>(&mut self, results: impl Iterator<Item=&SearchResult>) -> anyhow::Result<()> {
-        let size = results.size_hint().1.unwrap();
-        // iterate over the search results and generate an API request for a VersionList,
-        // removing the first element and then pushing that to the download queue
-        let mut versions = stream::iter(results).map(|r| async { 
-            let mut vlist = self.modrinth
-                .project(&r.project_id)
-                .list_versions()
-                .game_version(&self.opts.target)
-                .get().await.unwrap();
-            vlist.remove(0)
-        }).buffer_unordered(size);
-
-        while let Some(v) = versions.next().await {
-            self.download_queue.push(v);
-        }
-
-        Ok(())
+    /// An iterator over the Versions of a Mod given the project ID
+    async fn versions(&self, pid: &str) -> VersionList {
+        self.modrinth.project(pid)
+             .list_versions()
+             .game_version(&self.opts.target)
+             .get().await.unwrap()
     }
 
     /// List all the files in the download queue and confrim with the user
-    fn confirm_queue(&self) {
+    fn confirm_queue(&self, queue: &[Version]) {
         // print file names left to right until the next file name would 
         // mean more than 80 characters printed, then return and start over
         let mut chars_left: usize = 0;
-        println!("\nMods ({})", self.download_queue.len());
-        self.download_queue.iter().for_each(|v| {
-            match chars_left.checked_sub(&v.file().filename.len() + 2) {
+        println!("\nMods ({})", queue.len());
+        queue.iter().for_each(|v| {
+            let name_len = v.file().file_name().len();
+            match chars_left.checked_sub(name_len + 2) {
                 Some(left) => {
                     print!("{}  ", v);
                     chars_left = left;
                 },
                 None => {
                     print!("\n\t{}  ", v);
-                    chars_left = 80 - &v.file().filename.len();
+                    chars_left = 80 - name_len;
                 },
             }
         });
@@ -128,14 +114,11 @@ impl Minebrew {
     }
 
     /// Downloads all the files in the download queue
-    async fn download_files(&mut self, download_dir: &Path) -> anyhow::Result<()> {
-        let num_downloads = self.download_queue.len();
+    async fn download_files(&mut self, download_dir: &Path, queue: Vec<Version>) -> anyhow::Result<()> {
+        let num_downloads = queue.len();
         let (mut finished, total) = (0, num_downloads);
 
-        // DOWNLOAD QUEUE MOVED OUT OF SELF
-        let download_queue = std::mem::take(&mut self.download_queue);
-        
-        let mut downloads = stream::iter(download_queue.into_iter())
+        let mut downloads = stream::iter(queue.into_iter())
             .map(|v| async {
                 v.download_to(download_dir, &self.modrinth.client).await.unwrap();
                 v
@@ -145,32 +128,17 @@ impl Minebrew {
         while let Some(download) = downloads.next().await {
 
             // update mod database or insert the new mod
-            self.db.entry(download.project_id.clone())
-                .or_insert_with_key(|_| download);
+            match self.db.get_mut(&download.project_id) {
+                Some(old_v) => *old_v = download,
+                None => { self.db.insert(download.project_id.clone(), download); }
+            }
             
             finished += 1;
             print!("\x1B[2K\x1B[60DDownloaded\t[{}/{}]", finished, total);
             std::io::stdout().flush().unwrap();
         }
 
-        // let dir = get_mc_dir().join("minebrew.json");
-        let mut dir = download_dir.to_path_buf();
-        dir.pop();
-        dir.push("minebrew.json");
-        
-        match self.db.save_to_file(&dir) {
-            Ok(_) => Ok(()),
-            Err(e) => match e {
-                DBError::IOError(e) => { eprintln!("Error: {e}"); std::process::exit(1) },
-                DBError::SerializationErr(e) => {
-                    eprintln!("Error: {e} \n\nWhoops! Minebrew encountered an error that is \
-                              100% the developers fault, please report this to the Minebrew \
-                              development team along with the exact options and queries used, \
-                              thank you!");
-                    std::process::exit(1);
-                }
-            }
-        }
+        Ok(())
     }
 
     // search for mods 
@@ -188,7 +156,18 @@ impl Minebrew {
     //   - Pick the most recent version that 
     //     is acceptable to user
     //
-    // download file
+    //  Compare with the currently installed mods
+    //      - Dont install if its the same version
+    //      - if its a more up-to-date version then 
+    //        add it to the download queue
+    //
+    //  Download file
+    // 
+    //  Update Database
+    //  - if the mod is a newly installed mod then 
+    //    add it to the database
+    //  - if the mod has been updated then
+    //    update the database
     pub async fn install(&mut self) -> anyhow::Result<()> {
         let num_queries = self.opts.queries.len();
         let queries = std::mem::take(&mut self.opts.queries);
@@ -210,6 +189,7 @@ impl Minebrew {
             .map(|(sr, q)| { 
                 // filter out search results from each response
                 sr.filter(q, 2);
+                // select the right mod
                 match sr.pick_result() {
                     Ok(s) => s,
                     Err(_) => {
@@ -218,10 +198,38 @@ impl Minebrew {
                     }
                 }
         });
+        
+        // create a vector of Version structs that represents possible 
+        // downloads of its corresponding mod
+        let mut download_queue = stream::iter(results)
+            .map(|sr| self.versions(&sr.project_id))
+            .buffer_unordered(num_queries)
+            // map to a single Version via filtering
+            .map(|vlist| async { 
+                let version = vlist.into_iter()
+                    .find(|v| {
+                        v.file().is_primary() 
+                            && matches!(v.version_type, VersionType::Release | VersionType::Beta)
+                    });
 
-        // queue versions to download
-        // TEMPORARY until we can figure out how to do this better
-        self.add_to_queue(results).await?;
+                // There may not have been a version that met our requirements
+                match version {
+                    Some(v) => v,
+                    None => {
+                        eprintln!("Version was found but does not meet requirements...");
+                        std::process::exit(1);
+                    }
+                }
+            }).buffer_unordered(num_queries).collect::<Vec<Version>>().await;
+
+        // keep only those that need to be installed, 
+        // ignoring mods that haven't been updated
+        download_queue.retain(|v| {
+            match self.db.get(&v.project_id) {
+                Some(old_v) => old_v.id != v.id,
+                None => true
+            }
+        });
 
         // path to mods folder
         let mods_folder = &self.opts.directory.join("mods");
@@ -235,13 +243,21 @@ impl Minebrew {
             println!("Mods folder found...");
         }
 
-        self.confirm_queue();
+        self.confirm_queue(&download_queue);
 
         // download all the files we've gathered
-        self.download_files(mods_folder).await?;
+        self.download_files(mods_folder, download_queue).await?;
 
-        println!("\nSuccess!");
-        Ok(())
+        match self.db.save_to_file(&self.opts.directory.join("minebrew.json")) {
+            Ok(_) => { println!("Success!"); Ok(()) },
+            Err(e) => match e {
+                DBError::IOError(e) =>  anyhow::bail!("{e}"),
+                DBError::SerializationErr(e) => anyhow::bail!("Error: {e} \n\nWhoops! Minebrew encountered an error that is \
+                              100% the developers fault, please report this to the Minebrew \
+                              development team along with the exact options and queries used, \
+                              thank you!")
+            }
+        }
     }
 }
 

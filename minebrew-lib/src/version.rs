@@ -26,13 +26,35 @@ pub enum VersionType {
 pub struct ModFile {
     hashes: Hashes,
 
-    pub url: String,
+    url: String,
 
-    pub filename: String,
+    filename: String,
 
-    pub primary: bool,
+    primary: bool,
 
-    pub size: usize,
+    size: usize,
+}
+
+impl ModFile {
+    pub fn hashes(&self) -> &Hashes {
+        &self.hashes
+    }
+
+    pub fn url(&self) -> &str {
+        &self.url
+    }
+
+    pub fn is_primary(&self) -> bool {
+        self.primary
+    }
+
+    pub fn file_size(&self) -> usize {
+        self.size
+    }
+    
+    pub fn file_name(&self) -> &str {
+        &self.filename
+    }
 }
 
 impl Display for ModFile {
@@ -115,9 +137,7 @@ pub struct Version {
     #[serde(rename = "featured")]
     pub featured: bool,
 
-    #[serde(skip)]
-    #[serde(rename = "id")]
-    _id: String,
+    pub id: String,
 
     pub project_id: String,
 
@@ -160,25 +180,6 @@ impl Version {
     #[inline]
     pub fn sha1(&self) -> &str {
         &self.file().hashes.sha1
-    }
-    
-    pub async fn search(slug: &str, version: &str) -> Result<Vec<Version>, reqwest::Error> { 
-        let json_str = match reqwest::get(format!("https://api.modrinth.com/v2/project/{}/version?game_versions=[\"{}\"]", slug, version)).await {
-            Err(e) => { // Handle ERROR case for GET request
-                // if it is a connection error then let the user know
-                if e.is_connect() {
-                    eprintln!("Error connecting to host...");
-                    std::process::exit(1)
-                // If it isnt then something else happened that shouldnt have
-                } else {
-                    panic!("Unexpected reqwest error...")
-                }
-            },
-            Ok(response) => response.text().await.unwrap() // Parse json on success
-        };
- 
-        let versions: Vec<Version> = serde_json::from_str(&json_str).unwrap();
-        Ok(versions)
     }
 
     /// Convience function to download a version to a specific path
