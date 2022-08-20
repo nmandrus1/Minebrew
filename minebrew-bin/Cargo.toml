@@ -13,6 +13,6 @@ path = "src/main.rs"
 minebrew-lib = { path = "../minebrew-lib"}
 minebrew-cfg = { path = "../minebrew-cfg"}
 minebrew-db = { path = "../minebrew-db"}
-tokio = { version = "1.19.2", features = ["full"] }
+tokio = { version = "1.19.2", features = ["rt", "rt-multi-thread", "macros"] }
 futures = "0.3.21"
 anyhow = "1.0.58"
