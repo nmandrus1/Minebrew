@@ -129,7 +129,10 @@ impl Minebrew {
 
             // update mod database or insert the new mod
             match self.db.get_mut(&download.project_id) {
-                Some(old_v) => *old_v = download,
+                Some(old_v) => {
+                    std::fs::remove_file(download_dir.join(old_v.file().file_name()));
+                    *old_v = download
+                },
                 None => { self.db.insert(download.project_id.clone(), download); }
             }
             
@@ -233,6 +236,12 @@ impl Minebrew {
             if !ret {println!("{} is up to date...", &v.name)}
             ret
         });
+
+        // don't ask for user input if there are no mods to install!
+        if download_queue.is_empty() {
+            println!("All mods up to date!");
+            return Ok(())
+        }
 
         // path to mods folder
         let mods_folder = &self.opts.directory.join("mods");
