@@ -7,7 +7,6 @@ use minebrew_db::{ ModDB, DBError };
 
 use std::io::Write;
 use std::path::PathBuf;
-use std::path::Path;
 use std::sync::Arc;
 
 /// Modrinth contains all the info 
@@ -115,34 +114,9 @@ impl Minebrew {
 
         expected.iter().any(|e| e == &input.trim())
     }
-
-    /// Downloads all the files in the download queue
-    // async fn download_files(&mut self, download_dir: &Path, queue: Vec<Version>) -> anyhow::Result<()> {
-    //     let num_downloads = queue.len();
-    //     let (mut finished, total) = (0, num_downloads);
-    //
-    //     print!("Downloaded\t[{}/{}]", finished, total);
-    //     std::io::stdout().flush().unwrap();
-    //     
-    //     let mut downloads = stream::iter(queue.into_iter())
-    //         .map(|v| v.download_to(download_dir, &self.modrinth.client))
-    //         .buffer_unordered(num_downloads);
-    //         
-    //     while let Some(download) = downloads.next().await {
-    //
-    //         // update mod database or insert the new mod
-    //         self.db.replace_or_insert(download?);
-    //         
-    //         finished += 1;
-    //         print!("\x1B[2K\x1B[60DDownloaded\t[{}/{}]", finished, total);
-    //         std::io::stdout().flush().unwrap();
-    //     }
-    //
-    //     Ok(())
-    // }
     
     /// Downloads all the files in the download queue
-    async fn download_files_exp(&mut self, download_dir: Arc<PathBuf>, queue: Vec<Version>) -> anyhow::Result<()> {
+    async fn download_files(&mut self, download_dir: Arc<PathBuf>, queue: Vec<Version>) -> anyhow::Result<()> {
         let num_downloads = queue.len();
         let (mut finished, total) = (0, num_downloads);
         let mut futs = Vec::with_capacity(num_downloads);
@@ -282,7 +256,7 @@ impl Minebrew {
         self.confirm_queue(&download_queue);
 
         // download all the files we've gathered
-        self.download_files_exp(Arc::new(mods_folder), download_queue).await?;
+        self.download_files(Arc::new(mods_folder), download_queue).await?;
 
         match self.db.save_to_file() {
             Ok(_) => { println!("Success!"); Ok(()) },
@@ -339,8 +313,8 @@ impl Minebrew {
         self.confirm_queue(&download_queue);
 
         // download all the files we've gathered
-        let mods_folder = &self.opts.directory.join("mods");
-        // self.download_files(mods_folder, download_queue).await?;
+        let mods_folder = Arc::new(self.opts.directory.join("mods"));
+         self.download_files(mods_folder, download_queue).await?;
 
         match self.db.save_to_file() {
             Ok(_) => { println!("Success!"); Ok(()) },
