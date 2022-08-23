@@ -99,7 +99,7 @@ impl ModDB {
         println!("\nDEBUGING DELETE LATER!");
         self.db.iter().for_each(|(k, v)| println!("pid: {k}, mod: {}", &v.name));
 
-        std::fs::write(&self.dir, &json).map_err(|e| DBError::IOError(e))
+        std::fs::write(&self.dir, &json).map_err(DBError::IOError)
     }
 }
 

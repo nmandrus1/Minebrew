@@ -53,7 +53,6 @@ impl Minebrew {
         match mbrew.opts.cmd {
             Command::Install => mbrew.install().await,
             Command::Update => mbrew.update().await,
-            _ => Ok(()) 
         }
     }
     
