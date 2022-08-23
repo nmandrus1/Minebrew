@@ -1,5 +1,7 @@
 use std::fmt::Display;
+use std::path::PathBuf;
 use std::path::Path;
+use std::sync::Arc;
 
 use serde::{ Serialize, Deserialize };
 
@@ -186,14 +188,15 @@ impl Version {
     }
 
     /// Convience function to download a version to a specific path
-    pub async fn download_to(self, path: &Path, client: &reqwest::Client) -> anyhow::Result<Self> {
+    pub async fn download_to(self, path: Arc<PathBuf>, client: reqwest::Client) -> anyhow::Result<Self> {
         // TODO: Find a way to use a reqwest::Client here
         let file = &self.file();
 
         let (url, filename) = (&file.url, &file.filename);
 
-        let res = client.get(url).send().await?;
-        std::fs::write(path.join(filename), res.bytes().await?)?;
+        let res = tokio::spawn(client.get(url).send()).await??;
+        let bytes = tokio::spawn(res.bytes()).await??;
+        std::fs::write(path.join(filename), bytes)?;
         Ok(self)
     }
 }

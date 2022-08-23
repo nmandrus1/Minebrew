@@ -74,7 +74,6 @@ impl ModDB {
     /// replace a mod in the database with a new one if its being updated
     /// or insert a new mod into the database
     pub fn replace_or_insert(&mut self, new: Version) {
-        println!("DB PATH: {:?}", &self.dir);
         match self.db.get_mut(new.pid()) {
             Some(old_v) => {
                 // append to the path
@@ -86,7 +85,6 @@ impl ModDB {
             },
             None => { self.db.insert(new.pid().to_string(), new); }
         }
-        println!("DB PATH: {:?}", &self.dir);
     }
 
     /// save the contents of the Mod Database to the path passed to the fn
