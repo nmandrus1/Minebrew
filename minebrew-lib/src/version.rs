@@ -1,6 +1,5 @@
 use std::fmt::Display;
 use std::path::PathBuf;
-use std::path::Path;
 use std::sync::Arc;
 
 use serde::{ Serialize, Deserialize };
@@ -84,14 +83,13 @@ impl From<Vec<Version>> for VersionList {
 
 impl VersionList {
     /// length of the version list
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
+    pub fn len(&self) -> usize { self.0.len() }
+
+    /// check if the list is empty
+    pub fn is_empty(&self) -> bool { self.0.is_empty() }
 
     /// append a version to the end of the List
-    pub fn push(&mut self, v: Version) {
-        self.0.push(v)
-    }
+    pub fn push(&mut self, v: Version) { self.0.push(v) }
 
     /// Remove a Version from the list
     pub fn remove(&mut self, index: usize) -> Version {

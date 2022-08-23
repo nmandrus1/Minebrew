@@ -13,10 +13,11 @@ pub enum DependencyType {
 }
 
 /// Enum that represents a mods client/server side support
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Support {
     Required,
+    #[default]
     Optional,
     Unsupported
 }
@@ -119,7 +120,7 @@ impl From<&str> for Category {
 }
 
 // Enum that represents the project's status on modrinth
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ProjectStatus {
     Approved,
@@ -128,6 +129,7 @@ pub enum ProjectStatus {
     Unlisted,
     Archived,
     Processing,
+    #[default]
     Unknown
 }
 
@@ -140,7 +142,7 @@ pub struct DonationInfo {
 }
 
 /// A struct containg a message from a moderator
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct ModeratorMessage {
     _message: Option<String>,
     _body: Option<String>,

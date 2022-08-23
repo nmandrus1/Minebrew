@@ -78,7 +78,7 @@ impl ModDB {
             Some(old_v) => {
                 // append to the path
                 self.dir.push("mods"); self.dir.push(old_v.file().file_name());
-                std::fs::remove_file(&self.dir);
+                std::fs::remove_file(&self.dir).unwrap();
                 // return its state back to the (.minecraft folder)
                 self.dir.pop(); self.dir.pop();                 
                 *old_v = new
