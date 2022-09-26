@@ -21,7 +21,8 @@ impl Args {
 #[argh(subcommand)]
 pub enum Commands {
     Install(InstallArgs),
-    Update(UpdateArgs)
+    Update(UpdateArgs),
+    Scan(ScanArgs)
 }
 
 #[derive(FromArgs)]
@@ -49,6 +50,15 @@ pub struct UpdateArgs {
     /// the target version of Minecraft
     pub target: Option<String>, 
     
+    #[argh(option, short = 'd')]
+    /// path to your .minecraft directory
+    pub directory: Option<PathBuf>, 
+}
+
+#[derive(FromArgs)]
+#[argh(subcommand, name = "scan")]
+/// Install one or more mods
+pub struct ScanArgs {
     #[argh(option, short = 'd')]
     /// path to your .minecraft directory
     pub directory: Option<PathBuf>, 

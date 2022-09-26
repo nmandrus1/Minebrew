@@ -16,3 +16,4 @@ minebrew-db = { path = "../minebrew-db"}
 tokio = { version = "1.19.2", features = ["rt", "rt-multi-thread", "macros"] }
 futures = "0.3.21"
 anyhow = "1.0.58"
+sha-1 = "0.10.0"

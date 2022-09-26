@@ -14,6 +14,14 @@ pub struct ModDB{
 }
 
 impl ModDB {
+    /// creates an empty Database
+    pub fn new() -> Self {
+        Self {
+            db: HashMap::new(),
+            dir: PathBuf::new(),
+        }
+    }
+    
     /// Loads the local database from a given path
     pub fn load(path: &Path) -> Result<Self, DBError> {
         let string = match std::fs::read_to_string(path) {
@@ -89,15 +97,13 @@ impl ModDB {
 
     /// save the contents of the Mod Database to the path passed to the fn
     pub fn save_to_file(&mut self) -> Result<(), DBError>{
+        println!("Saving changes to Database...");
         self.dir.push("minebrew.json");
         
         let json = match serde_json::to_string(&self.db) {
             Ok(s) => s,
             Err(e) => return Err(DBError::SerializationErr(e))
         };
-
-        println!("\nDEBUGING DELETE LATER!");
-        self.db.iter().for_each(|(k, v)| println!("pid: {k}, mod: {}", &v.name));
 
         std::fs::write(&self.dir, &json).map_err(DBError::IOError)
     }

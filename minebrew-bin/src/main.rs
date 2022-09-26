@@ -1,5 +1,4 @@
 use futures::stream::{self, StreamExt};
-use anyhow::Error;
 
 use minebrew_lib::{ Modrinth, Empty, VersionList, Version, SearchResponse, version::VersionType};
 use minebrew_cfg::{Command, Options};
@@ -9,9 +8,26 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+#[derive(Debug)]
+enum ModFilterError {
+    TargetNotFound, // No Versions for specified target
+    VersionType,    // VersionType not acceptable
+}
+
+impl std::fmt::Display for ModFilterError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::TargetNotFound => write!(f, "Mod not available for specified Minecraft version"),
+            Self::VersionType => write!(f, "Mod did not meet the \"release type\" requirement"),
+        }
+    }
+}
+
+impl std::error::Error for ModFilterError {}
+
 /// Modrinth contains all the info 
 /// on currently installed packages
-pub struct Minebrew {
+struct Minebrew {
     modrinth: Modrinth<Empty>,
     opts: Options,
     db: ModDB,
@@ -20,10 +36,37 @@ pub struct Minebrew {
 /// Default init for Minebrew
 impl Default for Minebrew {
     fn default() -> Self {
-        let opts = Options::load();
-        
+        Self {
+            modrinth: Modrinth::new(),
+            db: ModDB::new(),
+            opts: Options::load(),
+        }
+    }
+}
+
+impl Minebrew {
+    // - Parse args and load config
+    /// Starts Minebrew
+    pub async fn run() -> anyhow::Result<()> {
+        let mut mbrew = Minebrew::default();
+        match mbrew.opts.cmd {
+            Command::Install => { 
+                mbrew.load_db();
+                mbrew.install().await
+            },
+            Command::Update => { 
+                mbrew.load_db();
+                mbrew.update().await
+            },
+            Command::Scan => {
+                mbrew.scan().await
+            },
+        }
+    }
+
+    fn load_db(&mut self) {
         println!("Loading local database...");
-        let db = match ModDB::load(&opts.directory.join("minebrew.json")) {
+        let db = match ModDB::load(&self.opts.directory.join("minebrew.json")) {
             Ok(db) => db,
             Err(e) => match e {
                 DBError::IOError(e) => { eprintln!("Error: {e}"); std::process::exit(1) },
@@ -36,24 +79,8 @@ impl Default for Minebrew {
                 }
             }
         };
-        
-        Self {
-            modrinth: Modrinth::new(),
-            opts,
-            db
-        }
-    }
-}
 
-impl Minebrew {
-    // - Parse args and load config
-    /// Starts Minebrew
-    pub async fn run() -> anyhow::Result<()> {
-        let mut mbrew = Minebrew::default();
-        match mbrew.opts.cmd {
-            Command::Install => mbrew.install().await,
-            Command::Update => mbrew.update().await,
-        }
+        self.db = db;
     }
     
     /// takes a query and returns the Response and the corresponding query
@@ -137,6 +164,8 @@ impl Minebrew {
             print!("\x1B[2K\x1B[60DDownloaded\t[{}/{}]", finished, total);
             std::io::stdout().flush().unwrap();
         }
+        
+        println!();
 
         Ok(())
     }
@@ -327,9 +356,62 @@ impl Minebrew {
         }
 
     }
+    
+    pub async fn scan(&mut self) -> anyhow::Result<()> {
+        let modrinth = &self.modrinth;
+        
+        let mc_dir = &self.opts.directory;
+        
+        println!("Beginning Scan...");
+        
+        let hashes = std::fs::read_dir(mc_dir.join("mods"))?
+            .filter_map(|e| { 
+                e.ok().and_then(|entry| if let Some(ext) = entry.path().extension() {
+                    if ext.eq("jar") { return Some(entry.path()); } 
+                    None
+                } else { None })
+            })
+        .map(|p| {
+            let bytes = std::fs::read(&p).unwrap();
+            hash_bytes(&bytes)
+        });
+
+        let installed_mods = stream::iter(hashes).map(|h| async move {
+            modrinth.version_hash(h).get().await
+        })
+        .buffer_unordered(25).collect::<Vec<anyhow::Result<Version>>>().await;
+
+        installed_mods
+            .into_iter()
+            .filter_map(|res| res.ok())
+            .for_each(|m| {
+                println!("Found mod: {}", &m.name);
+                self.db.insert(m.pid().to_string(), m);
+        });
+
+        self.db.save_to_file()?;
+
+        Ok(())
+    }
 }
 
+fn hash_bytes(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    
+    use sha1::{Sha1, Digest};
+    let mut hasher = Sha1::new();
+    let mut str = String::with_capacity(bytes.len() * 2);
+
+    hasher.update(bytes);
+    hasher.finalize().iter().for_each(|b| {
+        write!(&mut str, "{:02x}", b);
+    });
+
+    str
+}
+
+
 #[tokio::main]
-async fn main() -> Result<(), Error> { 
+async fn main() -> anyhow::Result<()> { 
     Minebrew::run().await
 }

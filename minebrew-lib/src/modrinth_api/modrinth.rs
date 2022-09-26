@@ -4,7 +4,7 @@ use std::convert::From;
 use reqwest::{Client, Response};
 
 use super::shared::{ProjectType, Category};
-use super::super::{SearchResponse, Project, VersionList};
+use super::super::{SearchResponse, Project, VersionList, Version};
 
 // have to import this here bc stupid publicity rules abt traits
 use super::traits::ToRequest;
@@ -190,6 +190,30 @@ impl<'a> ToRequest for VersionReq<'a> {
     }
 }
 
+pub enum HashAlgorithm {
+    Sha1,
+    Sha512,
+}
+
+pub struct VersionHashReq {
+    hash: String,
+    algorithm: HashAlgorithm,
+}
+
+impl VersionHashReq {
+    fn new(hash: String) -> Self {
+        Self{ hash, algorithm: HashAlgorithm::Sha1 }
+    }
+}
+
+
+impl ToRequest for VersionHashReq {
+    fn to_req(&self) -> String {
+        format!("{}/version_file/{}", BASE_REQUEST, self.hash)
+        // format!("{}/version_file/227648dc4f6a8604bafc282612a6de47eff70cd8", BASE_REQUEST)
+    }
+}
+
 /// The asynchronous interface to the Modrinth api
 ///
 /// This type was designed in its use to be similar to creating an API call 
@@ -324,6 +348,27 @@ impl Modrinth<Empty> { /// Creates a new Modrinth instance with an empty Request
             req_type: VersionReq::new(id) 
         }
     }
+    
+    /// Cheaply creates a Modrinth<VersionHashReq> instance and 
+    /// takes an id as a required parameter
+    ///
+    ///
+    /// # Example:
+    /// ```rust
+    /// use minebrew_lib::modrinth_api::Modrinth;
+    ///
+    /// let modrinth = Modrinth::new(); // new modrinth instance
+    /// // Creates a Modrinth<VersionHashReq> to begin building an API call
+    /// let project =  modrinth.version_hash("2DD6F771BA5878D81892B9487F3534E94C87A1C");
+    /// ```
+    ///
+    /// **NOTE** Slugs can change but a project's id is constant
+    pub fn version_hash(&self, hash: String) -> Modrinth<VersionHashReq> {
+        Modrinth { 
+            client: self.client.clone(), 
+            req_type: VersionHashReq::new(hash) 
+        }
+    }
 }
 
 impl<'a> Modrinth<SearchReq<'a>> {
@@ -368,7 +413,7 @@ impl<'a> Modrinth<SearchReq<'a>> {
     }
 
     pub async fn get(&mut self) -> anyhow::Result<SearchResponse> {
-        let sr = self.make_request().await?.json().await?;
+        let sr:SearchResponse = self.make_request().await?.json().await?;
         Ok(sr)
     }
 }
@@ -464,6 +509,17 @@ impl <'a> Modrinth<ListVersionReq<'a>> {
     pub async fn get(&mut self) -> anyhow::Result<VersionList> {
         let vlist: VersionList = self.make_request().await?.json().await?;
         Ok(vlist)
+    }
+}
+
+impl Modrinth<VersionHashReq> {
+    pub async fn get(&mut self) -> anyhow::Result<Version> {
+        // let v = self.make_request().await?.json().await?;
+        let v = self.make_request().await?.json().await;
+        match v {
+            Ok(ver) => Ok(ver),
+            Err(e) => Err(anyhow::anyhow!(e))
+        }
     }
 }
 
